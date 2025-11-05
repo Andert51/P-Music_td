@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Flame, History, Heart, Sparkles, Music } from 'lucide-react';
+import { Play, Flame, Disc3, Heart, Sparkles, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/axios';
 import { Song, Album } from '@/types';
@@ -187,27 +187,29 @@ export const Home: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Recientes Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          whileHover={{ scale: 1.05, y: -8 }}
-          whileTap={{ scale: 0.98 }}
-          className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-10 border-2 border-gruvbox-purple/30 cursor-pointer overflow-hidden transition-all"
-          style={{ minHeight: '220px' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-purple/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-purple/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-          
-          <History className="w-16 h-16 text-gruvbox-purple mb-6 relative z-10 group-hover:scale-125 group-hover:-rotate-12 transition-all duration-300" strokeWidth={2.5} />
-          <h3 className="text-2xl font-bold mb-3 relative z-10 text-gruvbox-fg">Recientes</h3>
-          <p className="text-gruvbox-fg4 relative z-10 text-base">Tu música reciente</p>
-          
-          <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Music className="w-24 h-24 text-gruvbox-purple" />
-          </div>
-        </motion.div>
+        {/* Álbumes Card */}
+        <Link to="/albums">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.05, y: -8 }}
+            whileTap={{ scale: 0.98 }}
+            className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-10 border-2 border-gruvbox-purple/30 cursor-pointer overflow-hidden transition-all"
+            style={{ minHeight: '220px' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-purple/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-purple/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            
+            <Disc3 className="w-16 h-16 text-gruvbox-purple mb-6 relative z-10 group-hover:scale-125 group-hover:rotate-180 transition-all duration-500" strokeWidth={2.5} />
+            <h3 className="text-2xl font-bold mb-3 relative z-10 text-gruvbox-fg">Álbumes</h3>
+            <p className="text-gruvbox-fg4 relative z-10 text-base">Colecciones completas</p>
+            
+            <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Music className="w-24 h-24 text-gruvbox-purple" />
+            </div>
+          </motion.div>
+        </Link>
 
         {/* Favoritas Card */}
         <Link to="/liked">

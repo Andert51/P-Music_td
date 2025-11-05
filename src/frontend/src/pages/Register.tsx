@@ -38,7 +38,7 @@ export const Register: React.FC = () => {
       >
         <div className="flex items-center justify-center mb-8">
           <Music className="w-12 h-12 text-primary mr-3" />
-          <h1 className="text-3xl font-bold text-white">Music Streaming</h1>
+          <h1 className="text-3xl font-bold text-white">Td-Music</h1>
         </div>
 
         <h2 className="text-2xl font-semibold text-white mb-6 text-center">

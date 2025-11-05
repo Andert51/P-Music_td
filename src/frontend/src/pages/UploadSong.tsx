@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Music, Image, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Upload, Music, Image, AlertCircle, CheckCircle, X, Disc3 } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -10,10 +10,11 @@ export const UploadSong: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
-  const [step, setStep] = useState<'select' | 'metadata' | 'complete'>('select');
+  const [step, setStep] = useState<'type' | 'select' | 'metadata' | 'complete'>('type');
   
   // Files
   const [songFile, setSongFile] = useState<File | null>(null);
+  const [songFiles, setSongFiles] = useState<File[]>([]); // Para álbumes
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [songPreview, setSongPreview] = useState<string>('');
   const [coverPreview, setCoverPreview] = useState<string>('');
@@ -63,6 +64,29 @@ export const UploadSong: React.FC = () => {
     }
   };
 
+  const handleMultipleSongsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const validFiles: File[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.name.endsWith('.mp3')) {
+          toast.error(`${file.name} no es un archivo MP3 válido`);
+          continue;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          toast.error(`${file.name} es muy grande (máx. 20MB)`);
+          continue;
+        }
+        validFiles.push(file);
+      }
+      setSongFiles(validFiles);
+      if (validFiles.length > 0) {
+        toast.success(`${validFiles.length} canciones seleccionadas`);
+      }
+    }
+  };
+
   const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -79,7 +103,76 @@ export const UploadSong: React.FC = () => {
     }
   };
 
+  const handleUploadAlbum = async () => {
+    if (!coverFile) {
+      toast.error('Selecciona una portada para el álbum');
+      return;
+    }
+
+    if (songFiles.length === 0) {
+      toast.error('Selecciona al menos una canción');
+      return;
+    }
+
+    if (!newAlbumTitle || !artist) {
+      toast.error('Completa el título del álbum y artista');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Crear FormData para el álbum completo
+      const formData = new FormData();
+      formData.append('album_title', newAlbumTitle);
+      formData.append('album_cover', coverFile);
+      formData.append('release_year', releaseYear);
+      
+      // Agregar todas las canciones
+      songFiles.forEach((file) => {
+        formData.append('songs', file);
+      });
+
+      // Agregar metadata de cada canción (arrays paralelos)
+      songFiles.forEach((file) => {
+        const fileName = file.name.replace('.mp3', '');
+        formData.append('song_titles', fileName);
+        formData.append('song_artists', artist);
+        formData.append('song_durations', '180'); // String que el backend convertirá a int
+        formData.append('song_genres', genre || 'Sin género');
+      });
+
+      const response = await api.post('/upload/album', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setStep('complete');
+      toast.success(`¡Álbum "${newAlbumTitle}" subido con ${songFiles.length} canciones!`);
+      
+      // Limpiar formulario
+      setSongFiles([]);
+      setCoverFile(null);
+      setCoverPreview('');
+      setNewAlbumTitle('');
+      setArtist('');
+      setGenre('');
+      setReleaseYear(new Date().getFullYear().toString());
+
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.response?.data?.detail || 'Error al subir el álbum');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
+    // Si es álbum, usar la función específica
+    if (uploadType === 'album') {
+      return handleUploadAlbum();
+    }
+
+    // Lógica para sencillo
     if (!songFile) {
       toast.error('Selecciona un archivo MP3');
       return;
@@ -90,28 +183,9 @@ export const UploadSong: React.FC = () => {
       return;
     }
 
-    if (uploadType === 'album' && !albumId && !newAlbumTitle) {
-      toast.error('Proporciona un título de álbum o selecciona uno existente');
-      return;
-    }
-
     setUploading(true);
 
     try {
-      let finalAlbumId = albumId ? parseInt(albumId) : null;
-
-      // Si es tipo álbum y no tiene ID existente, crear nuevo álbum
-      if (uploadType === 'album' && !albumId && newAlbumTitle) {
-        const releaseDate = new Date(parseInt(releaseYear), 0, 1); // Jan 1 del año
-        const albumResponse = await api.post('/albums/', {
-          title: newAlbumTitle,
-          description: `Álbum de ${artist}`,
-          release_date: releaseDate.toISOString(),
-        });
-        finalAlbumId = albumResponse.data.id;
-        toast.success(`Álbum "${newAlbumTitle}" creado`);
-      }
-
       // 1. Subir el archivo MP3
       const songFormData = new FormData();
       songFormData.append('file', songFile);
@@ -131,25 +205,18 @@ export const UploadSong: React.FC = () => {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
-        coverUrl = coverResponse.data.path; // ✅ Usar 'path' no 'url'
-
-        // Si creamos un nuevo álbum y hay cover, actualizar el álbum con el cover
-        if (finalAlbumId && uploadType === 'album' && !albumId) {
-          await api.put(`/albums/${finalAlbumId}`, {
-            cover_url: coverUrl,  // El backend acepta cover_url como alias de cover_image
-          });
-        }
+        coverUrl = coverResponse.data.path;
       }
 
-      // 3. Crear la canción en la base de datos
+      // 3. Crear la canción en la base de datos (sencillo sin álbum)
       await api.post('/songs/', {
         title,
         artist,
         genre: genre || null,
-        album_id: uploadType === 'single' ? null : finalAlbumId,
-        file_path: songResponse.data.path, // ✅ Usar 'path' no 'url'
+        album_id: null,
+        file_path: songResponse.data.path,
         cover_url: coverUrl,
-        duration: 180, // Por defecto, se puede calcular con librería en frontend
+        duration: 180,
       });
 
       setStep('complete');
@@ -220,8 +287,66 @@ export const UploadSong: React.FC = () => {
         <p className="text-gray-400 text-lg">Comparte tu música con el mundo</p>
       </motion.div>
 
+      {/* Type Selection Screen */}
+      {step === 'type' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid md:grid-cols-2 gap-8 py-12"
+        >
+          {/* Single Option */}
+          <motion.div
+            whileHover={{ scale: 1.05, y: -8 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              setUploadType('single');
+              setStep('select');
+            }}
+            className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-12 border-2 border-gruvbox-aqua/30 cursor-pointer overflow-hidden transition-all hover:border-gruvbox-aqua/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-aqua/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-aqua/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            
+            <Music className="w-20 h-20 text-gruvbox-aqua mb-6 relative z-10 group-hover:scale-125 transition-all duration-300" strokeWidth={2} />
+            <h3 className="text-3xl font-bold mb-4 relative z-10 text-gruvbox-fg">Sencillo</h3>
+            <p className="text-gruvbox-fg4 relative z-10 text-lg leading-relaxed">
+              Sube una canción individual con su portada. Perfecto para singles y tracks independientes.
+            </p>
+            
+            <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Music className="w-32 h-32 text-gruvbox-aqua" />
+            </div>
+          </motion.div>
+
+          {/* Album Option */}
+          <motion.div
+            whileHover={{ scale: 1.05, y: -8 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              setUploadType('album');
+              setStep('select');
+            }}
+            className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-12 border-2 border-gruvbox-purple/30 cursor-pointer overflow-hidden transition-all hover:border-gruvbox-purple/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-purple/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-purple/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            
+            <Disc3 className="w-20 h-20 text-gruvbox-purple mb-6 relative z-10 group-hover:scale-125 group-hover:rotate-180 transition-all duration-500" strokeWidth={2} />
+            <h3 className="text-3xl font-bold mb-4 relative z-10 text-gruvbox-fg">Álbum</h3>
+            <p className="text-gruvbox-fg4 relative z-10 text-lg leading-relaxed">
+              Sube un álbum completo con múltiples canciones y una portada compartida.
+            </p>
+            
+            <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Disc3 className="w-32 h-32 text-gruvbox-purple" />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Step Indicator */}
-      <div className="flex items-center justify-center space-x-4">
+      {step !== 'type' && (
+        <div className="flex items-center justify-center space-x-4">
         <div className={`flex items-center space-x-2 ${step === 'select' ? 'text-primary' : 'text-gray-500'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'select' ? 'bg-primary' : 'bg-gray-700'}`}>
             1
@@ -235,7 +360,8 @@ export const UploadSong: React.FC = () => {
           </div>
           <span className="font-medium">Metadata</span>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* File Upload Section */}
       {step === 'select' && (
@@ -244,19 +370,20 @@ export const UploadSong: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="space-y-6"
         >
-          {/* Song File */}
+          {/* Song File(s) */}
           <div className="bg-dark-200 rounded-xl p-8 border-2 border-dashed border-dark-400 hover:border-primary transition">
             <input
               type="file"
               accept=".mp3"
-              onChange={handleSongFileChange}
+              multiple={uploadType === 'album'}
+              onChange={uploadType === 'album' ? handleMultipleSongsChange : handleSongFileChange}
               className="hidden"
               id="song-upload"
             />
             <label htmlFor="song-upload" className="cursor-pointer block">
               <div className="text-center space-y-4">
                 <Upload className="w-16 h-16 text-gray-400 mx-auto" />
-                {songFile ? (
+                {uploadType === 'single' && songFile ? (
                   <>
                     <div className="flex items-center justify-center space-x-3">
                       <Music className="w-6 h-6 text-primary" />
@@ -266,13 +393,30 @@ export const UploadSong: React.FC = () => {
                       {(songFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </>
+                ) : uploadType === 'album' && songFiles.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-center space-x-3">
+                      <Disc3 className="w-6 h-6 text-primary" />
+                      <span className="text-white font-medium">{songFiles.length} canciones seleccionadas</span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-2 mt-4">
+                      {songFiles.map((file, index) => (
+                        <div key={index} className="text-sm text-gray-400 flex items-center justify-between px-4">
+                          <span className="truncate">{file.name}</span>
+                          <span className="ml-2">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <>
                     <h3 className="text-xl font-semibold text-white">
-                      Arrastra tu archivo MP3 aquí
+                      {uploadType === 'album' ? 'Arrastra tus archivos MP3 aquí' : 'Arrastra tu archivo MP3 aquí'}
                     </h3>
                     <p className="text-gray-400">o haz click para seleccionar</p>
-                    <p className="text-sm text-gray-500">Máximo 20MB</p>
+                    <p className="text-sm text-gray-500">
+                      {uploadType === 'album' ? 'Selecciona múltiples canciones' : 'Máximo 20MB por archivo'}
+                    </p>
                   </>
                 )}
               </div>
@@ -303,7 +447,7 @@ export const UploadSong: React.FC = () => {
                 )}
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-2">
-                    Cover Image (Opcional)
+                    {uploadType === 'album' ? 'Cover del Álbum *' : 'Cover Image (Opcional)'}
                   </h3>
                   <p className="text-gray-400 text-sm mb-2">
                     {coverFile ? coverFile.name : 'Selecciona una imagen'}
@@ -311,6 +455,9 @@ export const UploadSong: React.FC = () => {
                   <p className="text-xs text-gray-500">
                     Recomendado: 1000x1000px, máx. 5MB
                   </p>
+                  {uploadType === 'album' && !coverFile && (
+                    <p className="text-xs text-gruvbox-orange mt-1">* Requerido para álbumes</p>
+                  )}
                 </div>
               </div>
             </label>
@@ -318,7 +465,11 @@ export const UploadSong: React.FC = () => {
 
           <button
             onClick={() => setStep('metadata')}
-            disabled={!songFile}
+            disabled={
+              uploadType === 'single' ? !songFile : 
+              uploadType === 'album' ? (songFiles.length === 0 || !coverFile) : 
+              true
+            }
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continuar →
@@ -333,86 +484,10 @@ export const UploadSong: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="bg-dark-200 rounded-xl p-8 space-y-6"
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Título de la canción *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="input w-full"
-              placeholder="Ej: Paranoid Android"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Artista *
-            </label>
-            <input
-              type="text"
-              value={artist}
-              onChange={(e) => setArtist(e.target.value)}
-              className="input w-full"
-              placeholder="Ej: Radiohead"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Género
-            </label>
-            <input
-              type="text"
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              className="input w-full"
-              placeholder="Ej: Alternative Rock"
-            />
-          </div>
-
-          {/* Upload Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Tipo de lanzamiento *
-            </label>
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={() => setUploadType('single')}
-                className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                  uploadType === 'single'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-gray-600 text-gray-400 hover:border-gray-500'
-                }`}
-              >
-                <Music className="w-5 h-5 mx-auto mb-1" />
-                <span className="font-medium">Sencillo</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setUploadType('album')}
-                className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                  uploadType === 'album'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-gray-600 text-gray-400 hover:border-gray-500'
-                }`}
-              >
-                <Music className="w-5 h-5 mx-auto mb-1" />
-                <span className="font-medium">Álbum</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Album Fields (only if album type) */}
-          {uploadType === 'album' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4"
-            >
+          {/* Campos condicionales según tipo de subida */}
+          {uploadType === 'album' ? (
+            // Campos para Álbum
+            <>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Título del álbum *
@@ -423,6 +498,19 @@ export const UploadSong: React.FC = () => {
                   onChange={(e) => setNewAlbumTitle(e.target.value)}
                   className="input w-full"
                   placeholder="Ej: OK Computer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Artista *
+                </label>
+                <input
+                  type="text"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  className="input w-full"
+                  placeholder="Ej: Radiohead"
                 />
               </div>
 
@@ -443,20 +531,65 @@ export const UploadSong: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  O selecciona un álbum existente
+                  Género (opcional)
                 </label>
                 <input
-                  type="number"
-                  value={albumId}
-                  onChange={(e) => setAlbumId(e.target.value)}
+                  type="text"
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
                   className="input w-full"
-                  placeholder="ID del álbum existente (opcional)"
+                  placeholder="Ej: Alternative Rock"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Si proporcionas un ID de álbum existente, se ignorará el nuevo álbum
+              </div>
+
+              <div className="bg-gruvbox-bg0/50 border border-gruvbox-aqua/30 rounded-lg p-4">
+                <p className="text-sm text-gruvbox-fg4">
+                  📀 <span className="text-gruvbox-aqua font-medium">{songFiles.length} canciones</span> serán subidas en este álbum
                 </p>
               </div>
-            </motion.div>
+            </>
+          ) : (
+            // Campos para Sencillo
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Título de la canción *
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="input w-full"
+                  placeholder="Ej: Paranoid Android"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Artista *
+                </label>
+                <input
+                  type="text"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  className="input w-full"
+                  placeholder="Ej: Radiohead"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Género (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="input w-full"
+                  placeholder="Ej: Alternative Rock"
+                />
+              </div>
+            </>
           )}
 
           <div className="flex space-x-4">
@@ -469,10 +602,15 @@ export const UploadSong: React.FC = () => {
             </button>
             <button
               onClick={handleUpload}
-              disabled={uploading || !title || !artist || (uploadType === 'album' && !albumId && !newAlbumTitle)}
+              disabled={
+                uploading || 
+                !artist || 
+                (uploadType === 'single' && !title) ||
+                (uploadType === 'album' && (!newAlbumTitle || !releaseYear || songFiles.length === 0))
+              }
               className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {uploading ? 'Subiendo...' : 'Subir Canción'}
+              {uploading ? 'Subiendo...' : uploadType === 'album' ? 'Subir Álbum' : 'Subir Canción'}
             </button>
           </div>
         </motion.div>
