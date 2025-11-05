@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart, Plus } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
 import { getFileUrl } from '@/lib/utils';
+import api from '@/lib/axios';
+import { toast } from 'react-hot-toast';
+import { AddToPlaylistModal } from './AddToPlaylistModal';
 
 interface PlayerProps {
   onOpenNowPlaying: () => void;
@@ -15,6 +18,21 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+
+  // Check if current song is liked
+  useEffect(() => {
+    const checkLiked = async () => {
+      if (!currentSong) return;
+      try {
+        const response = await api.get(`/songs/${currentSong.id}/is-liked`);
+        setIsLiked(response.data.is_liked);
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    checkLiked();
+  }, [currentSong]);
 
   useEffect(() => {
     if (!howl || isSeeking) return;
@@ -29,6 +47,32 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleLikeSong = async () => {
+    if (!currentSong) return;
+    
+    try {
+      if (isLiked) {
+        await api.delete(`/songs/${currentSong.id}/like`);
+        setIsLiked(false);
+        toast.success('Eliminado de favoritos');
+      } else {
+        await api.post(`/songs/${currentSong.id}/like`);
+        setIsLiked(true);
+        toast.success('¡Agregado a favoritos!');
+      }
+    } catch (error: any) {
+      console.error('Error al dar like:', error);
+      if (error.response?.data?.detail === "Song already liked") {
+        setIsLiked(true);
+        toast.success('¡Agregado a favoritos!');
+      } else if (error.response?.status === 401) {
+        toast.error('Inicia sesión para guardar favoritos');
+      } else {
+        toast.error('Error al actualizar favoritos');
+      }
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +105,7 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
+    <>
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
@@ -97,7 +142,7 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
             <motion.button
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleLikeSong}
               className="p-2.5"
             >
               <Heart 
@@ -105,6 +150,15 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
                   isLiked ? 'fill-gruvbox-red text-gruvbox-red' : 'text-gruvbox-fg4 hover:text-gruvbox-red'
                 }`} 
               />
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowPlaylistModal(true)}
+              className="p-2.5"
+            >
+              <Plus className="w-7 h-7 text-gruvbox-fg4 hover:text-gruvbox-aqua transition-colors" />
             </motion.button>
           </div>
 
@@ -266,5 +320,16 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
         </div>
       </div>
     </motion.div>
+
+    {/* Add to Playlist Modal */}
+    {currentSong && showPlaylistModal && (
+      <AddToPlaylistModal
+        isOpen={showPlaylistModal}
+        songId={currentSong.id}
+        songTitle={currentSong.title}
+        onClose={() => setShowPlaylistModal(false)}
+      />
+    )}
+    </>
   );
 };

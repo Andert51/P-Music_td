@@ -9,6 +9,10 @@ import { Home } from '@/pages/Home';
 import { Albums } from '@/pages/Albums';
 import { AlbumDetail } from '@/pages/AlbumDetail';
 import { UploadSong } from '@/pages/UploadSong';
+import { LikedSongs } from '@/pages/LikedSongs';
+import { Search } from '@/pages/Search';
+import { Library } from '@/pages/Library';
+import { PlaylistDetail } from '@/pages/PlaylistDetail';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -52,9 +56,10 @@ const App: React.FC = () => {
           <Route path="albums" element={<Albums />} />
           <Route path="albums/:id" element={<AlbumDetail />} />
           <Route path="upload" element={<UploadSong />} />
-          <Route path="search" element={<div className="text-white">Search Page (Coming Soon)</div>} />
-          <Route path="library" element={<div className="text-white">Library Page (Coming Soon)</div>} />
-          <Route path="liked" element={<div className="text-white">Liked Songs (Coming Soon)</div>} />
+          <Route path="search" element={<Search />} />
+          <Route path="library" element={<Library />} />
+          <Route path="playlists/:id" element={<PlaylistDetail />} />
+          <Route path="liked" element={<LikedSongs />} />
         </Route>
       </Routes>
     </BrowserRouter>

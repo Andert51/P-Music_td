@@ -14,7 +14,9 @@ export const UploadSong: React.FC = () => {
   
   // Files
   const [songFile, setSongFile] = useState<File | null>(null);
+  const [singleDuration, setSingleDuration] = useState<number>(180); // Duración del single
   const [songFiles, setSongFiles] = useState<File[]>([]); // Para álbumes
+  const [songDurations, setSongDurations] = useState<number[]>([]); // Duraciones en segundos
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [songPreview, setSongPreview] = useState<string>('');
   const [coverPreview, setCoverPreview] = useState<string>('');
@@ -44,7 +46,27 @@ export const UploadSong: React.FC = () => {
     );
   }
 
-  const handleSongFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Función para calcular duración de un archivo de audio
+  const getAudioDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      
+      audio.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(audio.src);
+        resolve(audio.duration);
+      };
+      
+      audio.onerror = () => {
+        window.URL.revokeObjectURL(audio.src);
+        reject(new Error('Error al cargar audio'));
+      };
+      
+      audio.src = window.URL.createObjectURL(file);
+    });
+  };
+
+  const handleSongFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.name.endsWith('.mp3')) {
@@ -61,10 +83,22 @@ export const UploadSong: React.FC = () => {
       // Extraer metadata básica del nombre del archivo
       const fileName = file.name.replace('.mp3', '');
       if (!title) setTitle(fileName);
+      
+      // Calcular duración del archivo
+      toast.success('Calculando duración...');
+      try {
+        const duration = await getAudioDuration(file);
+        setSingleDuration(Math.floor(duration));
+        toast.success(`Duración: ${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}`);
+      } catch (error) {
+        console.error('Error al calcular duración:', error);
+        setSingleDuration(180);
+        toast.error('No se pudo calcular la duración, usando 3:00 por defecto');
+      }
     }
   };
 
-  const handleMultipleSongsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleSongsChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const validFiles: File[] = [];
@@ -81,8 +115,23 @@ export const UploadSong: React.FC = () => {
         validFiles.push(file);
       }
       setSongFiles(validFiles);
+      
+      // Calcular duraciones de las canciones
       if (validFiles.length > 0) {
-        toast.success(`${validFiles.length} canciones seleccionadas`);
+        toast.success(`${validFiles.length} canciones seleccionadas, calculando duraciones...`);
+        
+        const durations: number[] = [];
+        for (const file of validFiles) {
+          try {
+            const duration = await getAudioDuration(file);
+            durations.push(Math.floor(duration)); // Redondear a segundos enteros
+          } catch (error) {
+            console.error('Error al calcular duración:', error);
+            durations.push(180); // Fallback a 3 minutos
+          }
+        }
+        setSongDurations(durations);
+        toast.success(`Duraciones calculadas correctamente`);
       }
     }
   };
@@ -134,11 +183,13 @@ export const UploadSong: React.FC = () => {
       });
 
       // Agregar metadata de cada canción (arrays paralelos)
-      songFiles.forEach((file) => {
+      songFiles.forEach((file, index) => {
         const fileName = file.name.replace('.mp3', '');
         formData.append('song_titles', fileName);
         formData.append('song_artists', artist);
-        formData.append('song_durations', '180'); // String que el backend convertirá a int
+        // Usar la duración calculada o 180 por defecto
+        const duration = songDurations[index] || 180;
+        formData.append('song_durations', duration.toString());
         formData.append('song_genres', genre || 'Sin género');
       });
 
@@ -216,7 +267,7 @@ export const UploadSong: React.FC = () => {
         album_id: null,
         file_path: songResponse.data.path,
         cover_url: coverUrl,
-        duration: 180,
+        duration: singleDuration,
       });
 
       setStep('complete');

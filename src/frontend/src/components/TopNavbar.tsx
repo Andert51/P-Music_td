@@ -7,15 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 export const TopNavbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -44,50 +36,18 @@ export const TopNavbar: React.FC = () => {
         </motion.button>
       </div>
 
-      {/* Search Bar - Redesigned with Animation */}
-      <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8">
-        <motion.div 
-          className="relative group"
-          whileHover={{ scale: 1.01 }}
+      {/* Search Button - Simple Icon Button */}
+      <div className="flex-1 flex justify-center mx-8">
+        <motion.button
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/search')}
+          className="bg-gruvbox-bg1 hover:bg-gruvbox-aqua/20 rounded-full p-4 transition-all border-2 border-gruvbox-aqua/20 hover:border-gruvbox-aqua/60 shadow-lg hover:shadow-gruvbox-aqua/30 group"
+          title="Buscar música"
         >
-          {/* Animated border glow */}
-          <motion.div 
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-gruvbox-aqua/30 via-gruvbox-purple/30 to-gruvbox-orange/30 opacity-0 group-focus-within:opacity-100 blur-md transition-opacity"
-            animate={{
-              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-            }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
-          
-          <motion.div
-            className="absolute left-4 top-1/2 transform -translate-y-1/2"
-            animate={{
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <Search className="text-gruvbox-fg4 group-focus-within:text-gruvbox-aqua transition-colors" size={22} />
-          </motion.div>
-          
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="¿Qué quieres escuchar?"
-            className="relative w-full bg-gruvbox-bg1 hover:bg-gruvbox-bg2 focus:bg-gruvbox-bg2 text-gruvbox-fg placeholder-gruvbox-fg4 rounded-full pl-14 pr-6 py-3.5 outline-none transition-all border-2 border-gruvbox-aqua/20 focus:border-gruvbox-aqua/60 focus:shadow-xl focus:shadow-gruvbox-aqua/20 font-medium"
-          />
-          
-          {/* Shimmer effect on focus */}
-          <motion.div 
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-gruvbox-aqua/10 to-transparent opacity-0 group-focus-within:opacity-100 pointer-events-none"
-            animate={{
-              x: ['-100%', '200%'],
-            }}
-            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 0.5 }}
-          />
-        </motion.div>
-      </form>
+          <Search size={24} className="text-gruvbox-fg4 group-hover:text-gruvbox-aqua transition-colors" />
+        </motion.button>
+      </div>
 
       {/* User Menu */}
       <div className="relative">

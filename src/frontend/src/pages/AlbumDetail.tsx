@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Music, Play, Clock, Calendar, ArrowLeft } from 'lucide-react';
+import { Music, Play, Clock, Calendar, ArrowLeft, Heart, Plus } from 'lucide-react';
 import api from '@/lib/axios';
 import { Song } from '@/types';
 import { usePlayerStore } from '@/store/playerStore';
 import { toast } from 'react-hot-toast';
 import { getFileUrl } from '@/lib/utils';
+import { AddToPlaylistModal } from '@/components/AddToPlaylistModal';
 
 interface Album {
   id: number;
@@ -25,6 +26,8 @@ export const AlbumDetail: React.FC = () => {
   const navigate = useNavigate();
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
+  const [likedSongs, setLikedSongs] = useState<Set<number>>(new Set());
+  const [selectedSongForPlaylist, setSelectedSongForPlaylist] = useState<Song | null>(null);
   const { playQueue, currentSong, isPlaying } = usePlayerStore();
 
   useEffect(() => {
@@ -32,6 +35,61 @@ export const AlbumDetail: React.FC = () => {
       fetchAlbum();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (album && album.songs.length > 0) {
+      checkLikedSongs();
+    }
+  }, [album]);
+
+  const checkLikedSongs = async () => {
+    if (!album) return;
+    try {
+      const likedIds = new Set<number>();
+      for (const song of album.songs) {
+        const response = await api.get(`/songs/${song.id}/is-liked`);
+        if (response.data.is_liked) {
+          likedIds.add(song.id);
+        }
+      }
+      setLikedSongs(likedIds);
+    } catch (error) {
+      console.error('Error al verificar likes:', error);
+    }
+  };
+
+  const handleLikeSong = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const isLiked = likedSongs.has(song.id);
+      if (isLiked) {
+        await api.delete(`/songs/${song.id}/like`);
+        setLikedSongs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(song.id);
+          return newSet;
+        });
+        toast.success('Eliminado de favoritos');
+      } else {
+        await api.post(`/songs/${song.id}/like`);
+        setLikedSongs(prev => new Set(prev).add(song.id));
+        toast.success('Agregado a favoritos');
+      }
+    } catch (error: any) {
+      if (error.response?.status === 400 && error.response?.data?.detail?.includes('already liked')) {
+        toast.error('Esta canción ya está en favoritos');
+      } else if (error.response?.status === 401) {
+        toast.error('Debes iniciar sesión para dar like');
+      } else {
+        toast.error('Error al procesar like');
+      }
+    }
+  };
+
+  const handleAddToPlaylist = (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedSongForPlaylist(song);
+  };
 
   const fetchAlbum = async () => {
     try {
@@ -157,13 +215,14 @@ export const AlbumDetail: React.FC = () => {
 
       {/* Songs List */}
       <div className="mt-12">
-        <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 pb-2 mb-2 text-sm text-gray-400 border-b border-dark-400">
+        <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-4 pb-2 mb-2 text-sm text-gray-400 border-b border-dark-400">
           <div className="w-12">#</div>
           <div>Título</div>
           <div className="w-20 text-right">Plays</div>
           <div className="w-20 text-right">
             <Clock className="w-4 h-4 inline" />
           </div>
+          <div className="w-24 text-center">Acciones</div>
         </div>
 
         <div className="space-y-1">
@@ -174,7 +233,7 @@ export const AlbumDetail: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.03 }}
               onClick={() => handlePlaySong(index)}
-              className={`grid grid-cols-[auto_1fr_auto_auto] gap-4 p-4 rounded-lg hover:bg-white/5 cursor-pointer group ${
+              className={`grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 p-4 rounded-lg hover:bg-white/5 cursor-pointer group ${
                 currentSong?.id === song.id ? 'bg-primary/10' : ''
               }`}
             >
@@ -203,10 +262,45 @@ export const AlbumDetail: React.FC = () => {
               <div className="text-gray-400 text-sm flex items-center w-20 justify-end">
                 {formatDuration(song.duration)}
               </div>
+
+              <div className="flex items-center justify-center space-x-2 w-24">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => handleLikeSong(song, e)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <Heart 
+                    className={`w-5 h-5 ${
+                      likedSongs.has(song.id) 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-gray-400 hover:text-red-500'
+                    }`}
+                  />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => handleAddToPlaylist(song, e)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <Plus className="w-5 h-5 text-gray-400 hover:text-primary" />
+                </motion.button>
+              </div>
             </motion.div>
           ))}
         </div>
       </div>
+
+      {/* Add to Playlist Modal */}
+      {selectedSongForPlaylist && (
+        <AddToPlaylistModal
+          isOpen={!!selectedSongForPlaylist}
+          songId={selectedSongForPlaylist.id}
+          songTitle={selectedSongForPlaylist.title}
+          onClose={() => setSelectedSongForPlaylist(null)}
+        />
+      )}
     </div>
   );
 };

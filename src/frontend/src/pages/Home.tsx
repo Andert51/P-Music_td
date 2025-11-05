@@ -1,17 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Flame, Disc3, Heart, Sparkles, Music } from 'lucide-react';
+import { Play, Flame, Disc3, Heart, Sparkles, Music, Plus, ListMusic } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/axios';
 import { Song, Album } from '@/types';
 import { usePlayerStore } from '@/store/playerStore';
 import { toast } from 'react-hot-toast';
 import { getFileUrl } from '@/lib/utils';
+import { AddToPlaylistModal } from '@/components/AddToPlaylistModal';
 
 export const Home: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
+  const [likedSongs, setLikedSongs] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<{ id: number; title: string } | null>(null);
   const { playQueue, currentSong, isPlaying } = usePlayerStore();
   const floatingOrbs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -35,16 +39,63 @@ export const Home: React.FC = () => {
     try {
       setLoading(true);
       const [songsRes, albumsRes] = await Promise.all([
-        api.get('/songs/', { params: { limit: 12, approved_only: true } }),
-        api.get('/albums/', { params: { limit: 6 } })
+        api.get('/songs/', { params: { limit: 20, approved_only: true, order_by: 'play_count' } }),
+        api.get('/albums/', { params: { limit: 6, approved_only: true } })
       ]);
       setSongs(songsRes.data);
       setAlbums(albumsRes.data);
+      
+      // Obtener canciones liked
+      try {
+        const likedRes = await api.get('/songs/liked/all');
+        console.log('Liked songs response:', likedRes.data);
+        const likedIds = new Set(likedRes.data.map((song: Song) => song.id));
+        console.log('Liked IDs:', Array.from(likedIds));
+        setLikedSongs(likedIds);
+      } catch (error) {
+        // Si falla (ej. no autenticado), continuar sin likes
+        console.error('Error al cargar likes:', error);
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al cargar contenido');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLikeSong = async (songId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      if (likedSongs.has(songId)) {
+        // Unlike
+        await api.delete(`/songs/${songId}/like`);
+        setLikedSongs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(songId);
+          return newSet;
+        });
+        toast.success('Eliminado de favoritos');
+      } else {
+        // Like
+        await api.post(`/songs/${songId}/like`);
+        setLikedSongs(prev => new Set(prev).add(songId));
+        toast.success('¡Agregado a favoritos!');
+      }
+    } catch (error: any) {
+      console.error('Error al dar like:', error);
+      console.error('Response:', error.response?.data);
+      
+      // Si ya está likeada, actualizar el estado local
+      if (error.response?.data?.detail === "Song already liked") {
+        setLikedSongs(prev => new Set(prev).add(songId));
+        toast.success('¡Agregado a favoritos!');
+      } else if (error.response?.status === 401) {
+        toast.error('Inicia sesión para guardar favoritos');
+      } else {
+        toast.error('Error al actualizar favoritos');
+      }
     }
   };
 
@@ -165,27 +216,29 @@ export const Home: React.FC = () => {
 
       {/* Quick Access Cards - Larger & More Aesthetic */}
       <div className="grid grid-cols-3 gap-8">
-        {/* Tendencias Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          whileHover={{ scale: 1.05, y: -8 }}
-          whileTap={{ scale: 0.98 }}
-          className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-10 border-2 border-gruvbox-aqua/30 cursor-pointer overflow-hidden transition-all"
-          style={{ minHeight: '220px' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-aqua/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-aqua/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-          
-          <Flame className="w-16 h-16 text-gruvbox-aqua mb-6 relative z-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" strokeWidth={2.5} />
-          <h3 className="text-2xl font-bold mb-3 relative z-10 text-gruvbox-fg">Tendencias</h3>
-          <p className="text-gruvbox-fg4 relative z-10 text-base">Lo más popular ahora</p>
-          
-          <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Sparkles className="w-24 h-24 text-gruvbox-aqua" />
-          </div>
-        </motion.div>
+        {/* Playlists Card */}
+        <Link to="/library">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            whileHover={{ scale: 1.05, y: -8 }}
+            whileTap={{ scale: 0.98 }}
+            className="relative group bg-gradient-to-br from-gruvbox-bg1 to-gruvbox-bg2 rounded-3xl p-10 border-2 border-gruvbox-aqua/30 cursor-pointer overflow-hidden transition-all"
+            style={{ minHeight: '220px' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-aqua/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-4 right-4 w-32 h-32 bg-gruvbox-aqua/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+            
+            <ListMusic className="w-16 h-16 text-gruvbox-aqua mb-6 relative z-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300" strokeWidth={2.5} />
+            <h3 className="text-2xl font-bold mb-3 relative z-10 text-gruvbox-fg">Playlists</h3>
+            <p className="text-gruvbox-fg4 relative z-10 text-base">Tus colecciones musicales</p>
+            
+            <div className="absolute bottom-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Sparkles className="w-24 h-24 text-gruvbox-aqua" />
+            </div>
+          </motion.div>
+        </Link>
 
         {/* Álbumes Card */}
         <Link to="/albums">
@@ -325,15 +378,31 @@ export const Home: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.2 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={(e) => handleLikeSong(song.id, e)}
+                  className={`p-2 transition-opacity ${
+                    likedSongs.has(song.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                >
+                  <Heart 
+                    className={`w-6 h-6 transition-all ${
+                      likedSongs.has(song.id) 
+                        ? 'text-gruvbox-red fill-gruvbox-red' 
+                        : 'text-gruvbox-fg4 hover:text-gruvbox-red'
+                    }`}
+                  />
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toast.success('¡Agregado a favoritos!');
+                    setSelectedSong({ id: song.id, title: song.title });
+                    setShowPlaylistModal(true);
                   }}
                   className="p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <Heart 
-                    className="w-6 h-6 text-gruvbox-fg4 hover:text-gruvbox-red hover:fill-gruvbox-red transition-all" 
-                  />
+                  <Plus className="w-6 h-6 text-gruvbox-fg4 hover:text-gruvbox-aqua transition-colors" />
                 </motion.button>
 
                 <div className="text-gruvbox-fg3 text-sm font-mono font-semibold">
@@ -343,6 +412,19 @@ export const Home: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Add to Playlist Modal */}
+      {selectedSong && (
+        <AddToPlaylistModal
+          isOpen={showPlaylistModal}
+          onClose={() => {
+            setShowPlaylistModal(false);
+            setSelectedSong(null);
+          }}
+          songId={selectedSong.id}
+          songTitle={selectedSong.title}
+        />
       )}
     </div>
   );
