@@ -1,30 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { Navbar } from './Navbar';
+import { TopNavbar } from './TopNavbar';
 import { Player } from './Player';
 import { NowPlayingPanel } from './NowPlayingPanel';
 
 export const Layout: React.FC = () => {
-  const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
-
   return (
-    <div className="flex h-screen bg-dark-100 text-white">
+    <div className="flex h-screen bg-gradient-to-br from-deep-dark via-deep-navy to-deep-dark text-white">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar />
+        <TopNavbar />
         
         <main className="flex-1 overflow-y-auto px-8 py-6 pb-32">
           <Outlet />
         </main>
         
-        <Player onOpenNowPlaying={() => setIsNowPlayingOpen(true)} />
+        <Player onOpenNowPlaying={() => {}} />
       </div>
 
+      {/* Now Playing Panel - Always visible on the right */}
       <NowPlayingPanel 
-        isOpen={isNowPlayingOpen} 
-        onClose={() => setIsNowPlayingOpen(false)} 
+        isOpen={true} 
+        onClose={() => {}} 
       />
     </div>
   );

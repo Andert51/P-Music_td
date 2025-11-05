@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -21,12 +45,33 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #181818;
+  background: #282828;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #535353;
+  background: #8ec07c;
   border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fabd2f;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1d2021;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #8ec07c;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #d3869b;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -45,8 +90,46 @@ body {
   .card {
     @apply bg-dark-200 rounded-lg p-4 hover:bg-dark-300 transition-all duration-200 cursor-pointer;
   }
-  
-  .input-field {
-    @apply bg-dark-300 text-white border border-dark-400 rounded-md px-4 py-3 w-full focus:outline-none focus:border-primary transition-colors;
-  }
+}
+
+.input {
+  background-color: #3c3836;
+  color: #ebdbb2;
+  border: 2px solid rgba(142, 192, 124, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.input::placeholder {
+  color: #a89984;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #8ec07c;
+  background-color: #504945;
+}
+
+.input-field {
+  background-color: #3c3836;
+  color: #ebdbb2;
+  border: 2px solid rgba(142, 192, 124, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.input-field::placeholder {
+  color: #a89984;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #8ec07c;
+  background-color: #504945;
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
 import { getFileUrl } from '@/lib/utils';
 
@@ -9,29 +9,19 @@ interface PlayerProps {
 }
 
 export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
-  const { 
-    currentSong, 
-    isPlaying, 
-    volume, 
-    togglePlay, 
-    nextSong, 
-    previousSong, 
-    setVolume, 
-    howl
-  } = usePlayerStore();
+  const { currentSong, isPlaying, volume, togglePlay, nextSong, previousSong, setVolume, howl } = usePlayerStore();
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
-  const [isSeeking, setIsSeeking] = useState(false); // Para pausar la actualización automática
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
-    if (!howl || isSeeking) return; // No actualizar si el usuario está buscando
-
+    if (!howl || isSeeking) return;
     const interval = setInterval(() => {
       setCurrentTime(howl.seek() as number);
       setDuration(howl.duration());
     }, 100);
-
     return () => clearInterval(interval);
   }, [howl, isSeeking]);
 
@@ -48,147 +38,231 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   };
 
   const toggleMute = () => {
-    if (isMuted) {
-      setVolume(0.7);
-      setIsMuted(false);
-    } else {
-      setVolume(0);
-      setIsMuted(true);
-    }
+    setIsMuted(!isMuted);
+    setVolume(isMuted ? 0.7 : 0);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    // Solo actualizar la UI mientras arrastra
     setIsSeeking(true);
-    setCurrentTime(newTime);
+    setCurrentTime(parseFloat(e.target.value));
   };
 
-  const handleSeekMouseUp = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+  const handleSeekEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
     const newTime = parseFloat((e.target as HTMLInputElement).value);
-    
-    if (isNaN(newTime) || !howl) {
-      setIsSeeking(false);
-      return;
+    if (!isNaN(newTime) && howl && howl.state() === 'loaded') {
+      howl.seek(newTime);
+      setCurrentTime(newTime);
     }
-    
-    // Verificar que el audio esté listo
-    if (howl.state() !== 'loaded') {
-      setIsSeeking(false);
-      return;
-    }
-    
-    // Aplicar seek
-    howl.seek(newTime);
-    setCurrentTime(newTime);
-    
-    setTimeout(() => {
-      setIsSeeking(false);
-    }, 50);
+    setTimeout(() => setIsSeeking(false), 50);
   };
 
   if (!currentSong) return null;
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 bg-dark-200 border-t border-dark-400 px-4 py-3"
+      className="fixed bottom-0 left-0 right-80 bg-gradient-to-t from-gruvbox-bg via-gruvbox-bg0 to-gruvbox-bg0/95 backdrop-blur-xl border-t border-gruvbox-aqua/20 px-8 py-5 z-20"
+      style={{ boxShadow: '0 -10px 40px rgba(142, 192, 124, 0.15)' }}
     >
-      <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-4 flex-1">
-          <div 
-            onClick={onOpenNowPlaying}
-            className="relative group cursor-pointer"
-          >
-            <img
-              src={getFileUrl(currentSong.cover_url)}
-              alt={currentSong.title}
-              className="w-14 h-14 rounded-md transition-transform group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
-              <Maximize2 className="w-6 h-6 text-white" />
+      <div className="max-w-screen-2xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          {/* Song Info */}
+          <div className="flex items-center space-x-5 flex-1 min-w-0">
+            <motion.div 
+              onClick={onOpenNowPlaying}
+              className="relative group cursor-pointer flex-shrink-0"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <img 
+                src={getFileUrl(currentSong.cover_url)} 
+                alt={currentSong.title} 
+                className="w-20 h-20 rounded-xl shadow-xl border-2 border-gruvbox-aqua/30" 
+              />
+              <div className="absolute inset-0 ring-2 ring-gruvbox-aqua/0 group-hover:ring-gruvbox-aqua/60 rounded-xl transition-all" />
+            </motion.div>
+            
+            <div className="min-w-0 flex-1">
+              <h4 className="text-gruvbox-fg font-bold truncate text-lg hover:text-gruvbox-aqua transition-colors cursor-pointer">
+                {currentSong.title}
+              </h4>
+              <p className="text-gruvbox-fg4 text-base truncate hover:text-gruvbox-fg transition-colors cursor-pointer">
+                {currentSong.artist}
+              </p>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsLiked(!isLiked)}
+              className="p-2.5"
+            >
+              <Heart 
+                className={`w-7 h-7 transition-colors ${
+                  isLiked ? 'fill-gruvbox-red text-gruvbox-red' : 'text-gruvbox-fg4 hover:text-gruvbox-red'
+                }`} 
+              />
+            </motion.button>
+          </div>
+
+          {/* Playback Controls */}
+          <div className="flex flex-col items-center flex-1 max-w-2xl px-8">
+            <div className="flex items-center space-x-7 mb-4">
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={previousSong}
+                className="text-gruvbox-fg hover:text-gruvbox-aqua transition-colors"
+              >
+                <SkipBack className="w-7 h-7" fill="currentColor" />
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={togglePlay}
+                className="relative bg-gradient-to-br from-gruvbox-aqua via-gruvbox-yellow to-gruvbox-orange p-4 rounded-full shadow-xl hover:shadow-2xl transition-all group border-2 border-gruvbox-aqua/50"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-gruvbox-aqua to-gruvbox-orange rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+                {isPlaying ? (
+                  <Pause className="w-7 h-7 text-gruvbox-bg relative z-10" fill="currentColor" />
+                ) : (
+                  <Play className="w-7 h-7 text-gruvbox-bg relative z-10 ml-0.5" fill="currentColor" />
+                )}
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={nextSong}
+                className="text-gruvbox-fg hover:text-gruvbox-aqua transition-colors"
+              >
+                <SkipForward className="w-7 h-7" fill="currentColor" />
+              </motion.button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="flex items-center space-x-4 w-full">
+              <span className="text-base text-gruvbox-fg font-mono w-14 text-right font-bold">
+                {formatTime(currentTime)}
+              </span>
+              
+              <motion.div 
+                className="flex-1 h-4 bg-gruvbox-bg2/80 rounded-full cursor-pointer group relative border border-gruvbox-aqua/20"
+                style={{ overflow: 'visible' }}
+                whileHover={{ scale: 1.01 }}
+              >
+                {/* Background glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-gruvbox-aqua/10 to-gruvbox-purple/10 rounded-full blur-sm" />
+                
+                {/* Hover effect */}
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r from-gruvbox-aqua/20 to-gruvbox-purple/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" 
+                  animate={{ 
+                    backgroundPosition: ['0% 50%', '100% 50%'],
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: 'reverse'
+                  }}
+                />
+                
+                {/* Progress fill */}
+                <motion.div 
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-gruvbox-aqua via-gruvbox-yellow to-gruvbox-orange rounded-full"
+                  style={{ 
+                    width: `${progress}%`,
+                    boxShadow: '0 0 20px rgba(142, 192, 124, 0.9), 0 0 30px rgba(250, 189, 47, 0.6), 0 2px 4px rgba(0,0,0,0.3)',
+                    overflow: 'visible'
+                  }}
+                  animate={{
+                    boxShadow: [
+                      '0 0 20px rgba(142, 192, 124, 0.9), 0 0 30px rgba(250, 189, 47, 0.6)',
+                      '0 0 25px rgba(142, 192, 124, 1), 0 0 40px rgba(250, 189, 47, 0.8)',
+                      '0 0 20px rgba(142, 192, 124, 0.9), 0 0 30px rgba(250, 189, 47, 0.6)',
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-pulse" />
+                </motion.div>
+
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 0}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  onMouseUp={handleSeekEnd}
+                  onTouchEnd={handleSeekEnd}
+                  className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+                />
+              </motion.div>
+              
+              <span className="text-base text-gruvbox-fg font-mono w-14 font-bold">
+                {formatTime(duration)}
+              </span>
             </div>
           </div>
-          <div className="min-w-0">
-            <h4 className="text-white font-semibold truncate">{currentSong.title}</h4>
-            <p className="text-gray-400 text-sm truncate">{currentSong.artist}</p>
-          </div>
-        </div>
 
-        <div className="flex flex-col items-center flex-1 max-w-2xl">
-          <div className="flex items-center space-x-4 mb-2">
-            <button
-              onClick={previousSong}
-              className="text-gray-400 hover:text-white transition"
-            >
-              <SkipBack className="w-5 h-5" />
-            </button>
-            
-            <motion.button
-              whileHover={{ scale: 1.1 }}
+          {/* Volume Control */}
+          <div className="flex items-center space-x-4 flex-1 justify-end">
+            <motion.button 
+              whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
-              onClick={togglePlay}
-              className="bg-white rounded-full p-2 hover:scale-110 transition"
+              onClick={toggleMute} 
+              className="text-gruvbox-fg hover:text-gruvbox-aqua transition-colors"
             >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-black" fill="currentColor" />
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-7 h-7" />
               ) : (
-                <Play className="w-5 h-5 text-black" fill="currentColor" />
+                <Volume2 className="w-7 h-7" />
               )}
             </motion.button>
             
-            <button
-              onClick={nextSong}
-              className="text-gray-400 hover:text-white transition"
+            <motion.div 
+              className="w-36 h-4 bg-gruvbox-bg2/80 rounded-full overflow-visible cursor-pointer relative border border-gruvbox-purple/20"
+              whileHover={{ scale: 1.01 }}
             >
-              <SkipForward className="w-5 h-5" />
-            </button>
+              {/* Background glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-gruvbox-aqua/10 to-gruvbox-red/10 rounded-full blur-sm" />
+              
+              {/* Volume fill */}
+              <motion.div 
+                className="h-full bg-gradient-to-r from-gruvbox-aqua via-gruvbox-purple to-gruvbox-red rounded-full"
+                style={{ 
+                  width: `${volume * 100}%`,
+                  boxShadow: '0 0 15px rgba(142, 192, 124, 0.8), 0 2px 4px rgba(0,0,0,0.3)'
+                }}
+                animate={{
+                  boxShadow: [
+                    '0 0 15px rgba(142, 192, 124, 0.8)',
+                    '0 0 20px rgba(211, 134, 155, 1)',
+                    '0 0 15px rgba(142, 192, 124, 0.8)',
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+              </motion.div>
+              
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+              />
+            </motion.div>
           </div>
-
-          <div className="flex items-center space-x-2 w-full">
-            <span className="text-xs text-gray-400 w-10 text-right">
-              {formatTime(currentTime)}
-            </span>
-            <input
-              type="range"
-              min="0"
-              max={duration || 0}
-              value={currentTime}
-              onChange={handleSeek}
-              onMouseUp={handleSeekMouseUp}
-              onTouchEnd={handleSeekMouseUp}
-              className="flex-1 h-1 bg-dark-400 rounded-lg appearance-none cursor-pointer
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 
-                [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full 
-                [&::-webkit-slider-thumb]:bg-white hover:[&::-webkit-slider-thumb]:scale-110"
-            />
-            <span className="text-xs text-gray-400 w-10">
-              {formatTime(duration)}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 flex-1 justify-end">
-          <button onClick={toggleMute} className="text-gray-400 hover:text-white">
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5" />
-            ) : (
-              <Volume2 className="w-5 h-5" />
-            )}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="w-24 h-1 bg-dark-400 rounded-lg appearance-none cursor-pointer
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 
-              [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full 
-              [&::-webkit-slider-thumb]:bg-white"
-          />
         </div>
       </div>
     </motion.div>
