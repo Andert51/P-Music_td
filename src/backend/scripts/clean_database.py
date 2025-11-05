@@ -13,7 +13,7 @@ sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import User, Song, Album, Playlist, PlaylistSong, UserRole
+from models import User, Song, Album, Playlist, PlaylistSong, LikedSong, UserRole
 import shutil
 
 
@@ -52,32 +52,39 @@ def clean_uploads_directory():
 
 
 def clean_database(db: Session):
-    """Limpia todos los datos de la base de datos"""
+    """Limpia todos los datos de la base de datos respetando foreign keys"""
     
     print("\n🧹 Limpiando base de datos...")
     
-    # 1. Eliminar todas las relaciones de playlists
+    # ORDEN IMPORTANTE: Eliminar primero las tablas que dependen de otras
+    
+    # 1. Eliminar todas las relaciones de playlists (depende de playlists y songs)
     deleted_playlist_songs = db.query(PlaylistSong).delete()
     print(f"   🗑️  {deleted_playlist_songs} relaciones playlist-canción eliminadas")
     
-    # 2. Eliminar todas las playlists
+    # 2. Eliminar todos los likes (depende de users y songs)
+    deleted_liked_songs = db.query(LikedSong).delete()
+    print(f"   🗑️  {deleted_liked_songs} canciones con like eliminadas")
+    
+    # 3. Eliminar todas las playlists (depende de users)
     deleted_playlists = db.query(Playlist).delete()
     print(f"   🗑️  {deleted_playlists} playlists eliminadas")
     
-    # 3. Eliminar todas las canciones
+    # 4. Eliminar todas las canciones (depende de albums y users)
     deleted_songs = db.query(Song).delete()
     print(f"   🗑️  {deleted_songs} canciones eliminadas")
     
-    # 4. Eliminar todos los álbumes
+    # 5. Eliminar todos los álbumes (depende de users)
     deleted_albums = db.query(Album).delete()
     print(f"   🗑️  {deleted_albums} álbumes eliminados")
     
-    # 5. Eliminar todos los usuarios
+    # 6. Eliminar todos los usuarios (no depende de nada)
     deleted_users = db.query(User).delete()
     print(f"   🗑️  {deleted_users} usuarios eliminados")
     
     db.commit()
-    print("✅ Base de datos limpiada")
+    print("✅ Base de datos limpiada completamente")
+
 
 
 def main():
@@ -104,11 +111,20 @@ def main():
         print("\n" + "=" * 60)
         print("✅ LIMPIEZA COMPLETADA")
         print("=" * 60)
-        print("\n💡 Ejecuta 'python scripts/seed_database.py' para crear datos iniciales")
+        print("\n� RESUMEN:")
+        print("   🗑️  Base de datos completamente limpiada")
+        print("   🗑️  Todos los archivos uploads eliminados")
+        print("   📁 Estructura de directorios recreada")
+        print("\n�💡 Próximos pasos:")
+        print("   1. Ejecuta: python src/backend/scripts/seed_database.py")
+        print("   2. Inicia sesión con las credenciales del seeder")
+        print("   3. Comienza a subir canciones y álbumes frescos")
         
     except Exception as e:
         print(f"\n❌ Error durante la limpieza: {e}")
         db.rollback()
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
 
