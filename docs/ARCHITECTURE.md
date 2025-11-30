@@ -1,4 +1,4 @@
-# 🏗️ P-Music TD - Architecture Documentation
+# 🏗️ Panal-Music - Architecture Documentation
 
 **Versión**: 1.0.0  
 **Última actualización**: Noviembre 2025  
@@ -23,7 +23,7 @@
 
 ## 🎯 Visión General del Sistema
 
-**P-Music TD** es una aplicación web full-stack de streaming de música desarrollada con arquitectura moderna y escalable. El sistema está diseñado siguiendo principios SOLID, patrones de diseño probados y mejores prácticas de la industria.
+**Panal-Music** es una aplicación web full-stack de streaming de música desarrollada con arquitectura moderna y escalable. El sistema está diseñado siguiendo principios SOLID, patrones de diseño probados y mejores prácticas de la industria.
 
 ### Características Arquitectónicas Clave
 

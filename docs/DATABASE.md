@@ -1,4 +1,4 @@
-# 🗄️ P-Music TD - Database Documentation
+# 🗄️ Panal-Music - Database Documentation
 
 **Database Engine**: PostgreSQL 16+  
 **ORM**: SQLAlchemy 2.0.25  
@@ -24,7 +24,7 @@
 
 ## 🎯 Visión General
 
-La base de datos de **P-Music TD** está diseñada siguiendo los principios de normalización (3NF) para garantizar:
+La base de datos de **Panal-Music** está diseñada siguiendo los principios de normalización (3NF) para garantizar:
 
 - ✅ **Integridad referencial**: Foreign keys con constraints
 - ✅ **Eliminación de redundancia**: Datos no duplicados

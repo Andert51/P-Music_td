@@ -1,4 +1,4 @@
-# 🎵 P-Music TD - Music Streaming Platform
+# 🎵 Panal-Music - Music Streaming Platform
 
 <div align="center">
 
@@ -35,7 +35,7 @@ A modern, full-stack music streaming application built with FastAPI and React, f
 
 ## 🎯 Overview
 
-**P-Music TD** is a Spotify-like music streaming platform that allows users to discover, upload, and play music. Built with modern web technologies, it features a robust backend API, responsive frontend, and comprehensive music management capabilities.
+**Panal-Music** is a Spotify-like music streaming platform that allows users to discover, upload, and play music. Built with modern web technologies, it features a robust backend API, responsive frontend, and comprehensive music management capabilities.
 
 ### Key Highlights
 

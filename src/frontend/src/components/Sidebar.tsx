@@ -58,7 +58,7 @@ export const Sidebar: React.FC = () => {
                   animation: 'rainbow 3s linear infinite',
                 }}
               >
-                Td-Music
+                P-Music
               </h1>
             </motion.div>
           )}
@@ -156,7 +156,7 @@ export const Sidebar: React.FC = () => {
           exit={{ opacity: 0 }}
           className="p-4 text-xs text-gray-500 border-t border-cyan/10"
         >
-          <p className="mb-1 text-gray-400">© 2025 Td-Music</p>
+          <p className="mb-1 text-gray-400">© 2025 P-Music</p>
           <p className="text-gray-600">Stream Your Sound</p>
         </motion.div>
       )}
