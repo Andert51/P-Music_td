@@ -8,7 +8,7 @@
 
 ## 🎯 Resumen Ejecutivo
 
-**P-Music TD** es una plataforma de streaming de música full-stack que implementa una arquitectura cliente-servidor moderna utilizando FastAPI (backend) y React con TypeScript (frontend). El sistema sigue el patrón arquitectónico **Three-Tier** con separación clara entre capa de presentación, lógica de negocio y persistencia de datos.
+**Panal-Music** es una plataforma de streaming de música full-stack que implementa una arquitectura cliente-servidor moderna utilizando FastAPI (backend) y React con TypeScript (frontend). El sistema sigue el patrón arquitectónico **Three-Tier** con separación clara entre capa de presentación, lógica de negocio y persistencia de datos.
 
 **Stack Principal**:
 - **Backend**: FastAPI + SQLAlchemy + PostgreSQL
