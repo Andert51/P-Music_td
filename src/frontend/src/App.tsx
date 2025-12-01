@@ -14,6 +14,7 @@ import { Search } from '@/pages/Search';
 import { Library } from '@/pages/Library';
 import { PlaylistDetail } from '@/pages/PlaylistDetail';
 import { Premium } from '@/pages/Premium';
+import { FakeCheckout } from '@/pages/FakeCheckout';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -44,6 +45,16 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Fake Checkout - Separate route without Layout */}
+        <Route
+          path="/fake-checkout"
+          element={
+            <PrivateRoute>
+              <FakeCheckout />
+            </PrivateRoute>
+          }
+        />
         
         <Route
           path="/"

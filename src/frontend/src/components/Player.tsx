@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart, Plus, ChevronUp, ChevronDown, Crown, ShieldAlert } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
+import { useAuthStore } from '@/store/authStore';
 import { getFileUrl } from '@/lib/utils';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
@@ -13,6 +14,7 @@ interface PlayerProps {
 
 export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   const { currentSong, isPlaying, volume, togglePlay, nextSong, previousSong, setVolume, howl } = usePlayerStore();
+  const { user } = useAuthStore();
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -108,6 +110,7 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   return (
     <>
     <motion.div
+      data-player-control="true"
       initial={{ y: 100 }}
       animate={{ 
         y: 0,
@@ -154,12 +157,23 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
             </motion.div>
 
             <div className="min-w-0 flex-1">
-              <h4 className="text-gruvbox-fg font-bold truncate text-sm">
+              <h4 className="text-gruvbox-fg font-bold truncate text-sm flex items-center gap-2">
                 {currentSong.title}
+                {user && user.role !== 'user' && (
+                  <span className="px-1.5 py-0.5 bg-gruvbox-yellow/20 text-gruvbox-yellow text-[9px] font-bold rounded uppercase border border-gruvbox-yellow/30">
+                    <Crown className="w-2.5 h-2.5 inline" />
+                  </span>
+                )}
               </h4>
               <p className="text-gruvbox-fg4 text-xs truncate">
                 {currentSong.artist}
               </p>
+              {user && user.role === 'user' && (
+                <p className="text-gruvbox-yellow text-[9px] font-bold uppercase flex items-center gap-1 mt-0.5">
+                  <ShieldAlert className="w-2.5 h-2.5" />
+                  Plan Free
+                </p>
+              )}
             </div>
           </div>
 

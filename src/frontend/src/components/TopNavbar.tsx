@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, User, LogOut, ChevronLeft, ChevronRight, Crown, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 
@@ -70,7 +70,20 @@ export const TopNavbar: React.FC = () => {
           >
             <User size={20} className="text-gruvbox-bg" />
           </motion.div>
-          <span className="font-bold text-gruvbox-fg">{user?.username || 'Usuario'}</span>
+          <div className="flex flex-col items-start">
+            <span className="font-bold text-gruvbox-fg">{user?.username || 'Usuario'}</span>
+            {user?.role === 'user' ? (
+              <span className="text-[10px] font-bold text-gruvbox-fg4 uppercase tracking-wide flex items-center gap-1">
+                <ShieldAlert className="w-3 h-3" />
+                Free
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-gruvbox-yellow uppercase tracking-wide flex items-center gap-1">
+                <Crown className="w-3 h-3" />
+                Premium
+              </span>
+            )}
+          </div>
         </motion.button>
 
         {/* Dropdown Menu */}
@@ -93,6 +106,7 @@ export const TopNavbar: React.FC = () => {
             
             <div className="border-t border-gruvbox-aqua/20">
               <button
+                data-logout="true"
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-3 hover:bg-gruvbox-red/20 transition-colors text-gruvbox-red hover:text-gruvbox-red font-semibold"
               >

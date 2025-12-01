@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Flame, Disc3, Heart, Sparkles, Music, Plus, ListMusic } from 'lucide-react';
+import { Play, Flame, Disc3, Heart, Sparkles, Music, Plus, ListMusic, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/axios';
 import { Song, Album } from '@/types';
 import { usePlayerStore } from '@/store/playerStore';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-hot-toast';
 import { getFileUrl } from '@/lib/utils';
 import { AddToPlaylistModal } from '@/components/AddToPlaylistModal';
+import { AdBanner } from '@/components/AdBanner';
+import { usePremiumRedirect } from '@/hooks/usePremiumRedirect';
 
 export const Home: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -17,7 +20,11 @@ export const Home: React.FC = () => {
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [selectedSong, setSelectedSong] = useState<{ id: number; title: string } | null>(null);
   const { playQueue, currentSong, isPlaying } = usePlayerStore();
+  const { user } = useAuthStore();
   const floatingOrbs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Activar redirecciones aleatorias para usuarios Free
+  usePremiumRedirect();
 
   // Simple floating animation with CSS
   useEffect(() => {
@@ -116,6 +123,70 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-12 pb-32">
+      {/* Título Principal PANEL MUSIC */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center pt-4 pb-2"
+      >
+        {user && user.role !== 'user' ? (
+          // Versión Premium - Arcoiris dorado animado con corona
+          <div className="flex items-center justify-center gap-3">
+            <motion.div
+              animate={{ rotate: [0, -10, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 0.5 }}
+            >
+              <Crown className="w-12 h-12 text-gruvbox-yellow drop-shadow-2xl" />
+            </motion.div>
+            <h1
+              className="text-6xl font-black"
+              style={{
+                backgroundImage: 'linear-gradient(90deg, #fabd2f, #fe8019, #d65d0e, #fe8019, #fabd2f, #b8bb26, #fabd2f)',
+                backgroundSize: '200% auto',
+                color: 'transparent',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                animation: 'rainbow 3s linear infinite',
+                textShadow: '0 0 30px rgba(250, 189, 47, 0.5)',
+                filter: 'drop-shadow(0 0 10px rgba(250, 189, 47, 0.8))',
+              }}
+            >
+              PANAL MUSIC
+            </h1>
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 0.5 }}
+            >
+              <Crown className="w-12 h-12 text-gruvbox-yellow drop-shadow-2xl" />
+            </motion.div>
+          </div>
+        ) : (
+          // Versión Free - Colores planos sin efectos
+          <h1 className="text-6xl font-black text-gruvbox-fg4">
+            PANAL MUSIC
+          </h1>
+        )}
+        
+        {/* Badge Premium/Free */}
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2, type: 'spring' }}
+          className="mt-3 inline-block"
+        >
+          {user && user.role !== 'user' ? (
+            <span className="px-6 py-2 bg-gradient-to-r from-gruvbox-yellow via-gruvbox-orange to-gruvbox-yellow rounded-full text-gruvbox-bg font-black text-lg uppercase tracking-wider shadow-xl shadow-gruvbox-yellow/50 border-2 border-gruvbox-yellow/50">
+              Premium
+            </span>
+          ) : (
+            <span className="px-6 py-2 bg-gruvbox-bg2 text-gruvbox-fg4 rounded-full font-bold text-lg uppercase tracking-wider border-2 border-gruvbox-fg4/30">
+              Free Plan
+            </span>
+          )}
+        </motion.div>
+      </motion.div>
+
       {/* Floating Orbs Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {[...Array(8)].map((_, i) => {
@@ -214,6 +285,17 @@ export const Home: React.FC = () => {
         />
       </motion.div>
 
+      {/* Ad Banner 1 - Solo para usuarios Free */}
+      {user?.role === 'user' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <AdBanner variant="horizontal" />
+        </motion.div>
+      )}
+
       {/* Quick Access Cards - Larger & More Aesthetic */}
       <div className="grid grid-cols-3 gap-8">
         {/* Playlists Card */}
@@ -289,6 +371,17 @@ export const Home: React.FC = () => {
         </Link>
       </div>
 
+      {/* Ad Banner 3 - Más invasivo para usuarios Free */}
+      {user?.role === 'user' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <AdBanner variant="horizontal" />
+        </motion.div>
+      )}
+
       {/* Albums Section */}
       {albums.length > 0 && (
         <div>
@@ -330,23 +423,48 @@ export const Home: React.FC = () => {
         </div>
       )}
 
+      {/* Ad Banner 2 - Solo para usuarios Free */}
+      {user?.role === 'user' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-2 gap-6"
+        >
+          <AdBanner variant="vertical" />
+          <AdBanner variant="vertical" />
+        </motion.div>
+      )}
+
       {/* Songs Section */}
       {songs.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold text-gruvbox-fg">Canciones Populares</h2>
+            {user?.role === 'user' && (
+              <Link to="/premium">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2 bg-gradient-to-r from-gruvbox-yellow to-gruvbox-orange text-gruvbox-bg font-bold rounded-lg flex items-center gap-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Ir Premium
+                </motion.button>
+              </Link>
+            )}
           </div>
           <div className="space-y-2">
             {songs.slice(0, 10).map((song, index) => (
-              <motion.div
-                key={song.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`group flex items-center gap-4 p-4 rounded-xl hover:bg-gruvbox-aqua/10 cursor-pointer transition-all border border-transparent hover:border-gruvbox-aqua/30 ${
-                  currentSong?.id === song.id && isPlaying ? 'bg-gruvbox-aqua/20 border-gruvbox-aqua/50' : ''
-                }`}
-              >
+              <React.Fragment key={song.id}>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`group flex items-center gap-4 p-4 rounded-xl hover:bg-gruvbox-aqua/10 cursor-pointer transition-all border border-transparent hover:border-gruvbox-aqua/30 ${
+                    currentSong?.id === song.id && isPlaying ? 'bg-gruvbox-aqua/20 border-gruvbox-aqua/50' : ''
+                  }`}
+                >
                 <div className="w-12 h-12 flex items-center justify-center text-gruvbox-fg3 font-bold text-lg">
                   {index + 1}
                 </div>
@@ -409,8 +527,61 @@ export const Home: React.FC = () => {
                   {Math.floor(song.duration / 60)}:{String(Math.floor(song.duration % 60)).padStart(2, '0')}
                 </div>
               </motion.div>
+              
+              {/* Ad cada 5 canciones para usuarios Free */}
+              {user?.role === 'user' && (index + 1) % 5 === 0 && index < 9 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="my-4"
+                >
+                  <AdBanner variant="horizontal" />
+                </motion.div>
+              )}
+            </React.Fragment>
             ))}
           </div>
+
+          {/* Banner final de Premium para usuarios Free */}
+          {user?.role === 'user' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8"
+            >
+              <Link to="/premium">
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-gradient-to-r from-gruvbox-yellow via-gruvbox-orange to-gruvbox-red p-8 rounded-2xl text-center cursor-pointer relative overflow-hidden shadow-2xl"
+                >
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"
+                  />
+                  <div className="relative z-10">
+                    <Crown className="w-16 h-16 text-gruvbox-bg mx-auto mb-4" />
+                    <h3 className="text-3xl font-black text-gruvbox-bg mb-2">
+                      ¿Cansado de los anuncios?
+                    </h3>
+                    <p className="text-gruvbox-bg/80 text-lg mb-4">
+                      Actualiza a Premium y disfruta sin interrupciones
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-8 py-3 bg-gruvbox-bg text-gruvbox-yellow font-black rounded-full text-lg shadow-xl"
+                    >
+                      Ver Planes Premium
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </Link>
+            </motion.div>
+          )}
         </div>
       )}
 

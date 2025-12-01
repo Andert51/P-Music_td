@@ -103,7 +103,9 @@ export const Sidebar: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              className="relative bg-gradient-to-br from-gruvbox-yellow/20 via-gruvbox-orange/20 to-gruvbox-purple/20 backdrop-blur-sm border-2 border-gruvbox-yellow/40 rounded-xl p-4 overflow-hidden cursor-pointer group"
+              className={`relative bg-gradient-to-br from-gruvbox-yellow/20 via-gruvbox-orange/20 to-gruvbox-purple/20 backdrop-blur-sm border-2 border-gruvbox-yellow/40 rounded-xl overflow-hidden cursor-pointer group ${
+                !shouldExpand ? 'p-3' : 'p-4'
+              }`}
             >
               {/* Animated background */}
               <motion.div
@@ -115,55 +117,51 @@ export const Sidebar: React.FC = () => {
                 className="absolute inset-0 bg-gradient-to-br from-gruvbox-yellow/10 to-gruvbox-purple/10 rounded-xl"
               />
 
-              {/* Content */}
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-2">
-                  <motion.div
-                    animate={{ rotate: [0, -10, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                  >
-                    <Crown className="w-6 h-6 text-gruvbox-yellow" />
-                  </motion.div>
-                  <h3 className="font-black text-gruvbox-fg text-sm">Actualiza a Premium</h3>
-                </div>
+              {/* Contenido cuando está colapsado - Solo corona */}
+              {!shouldExpand && (
+                <motion.div
+                  className="relative flex justify-center"
+                  animate={{ rotate: [0, -10, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                >
+                  <Crown className="w-7 h-7 text-gruvbox-yellow drop-shadow-lg" />
+                </motion.div>
+              )}
 
-                <AnimatePresence>
-                  {shouldExpand && (
+              {/* Contenido cuando está expandido - Banner completo */}
+              {shouldExpand && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="relative"
+                >
+                  <div className="flex items-center gap-2 mb-2">
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
+                      animate={{ rotate: [0, -10, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                     >
-                      <p className="text-xs text-gruvbox-fg4 mb-3 leading-relaxed">
-                        Sin anuncios, calidad HD y descargas ilimitadas
-                      </p>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gruvbox-yellow">
-                          Desde $4.99/mes
-                        </span>
-                        <motion.div
-                          animate={{ x: [0, 3, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <Sparkles className="w-4 h-4 text-gruvbox-yellow" />
-                        </motion.div>
-                      </div>
+                      <Crown className="w-6 h-6 text-gruvbox-yellow" />
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                    <h3 className="font-black text-gruvbox-fg text-sm">Actualiza a Premium</h3>
+                  </div>
 
-                {!shouldExpand && (
-                  <motion.div
-                    animate={{ rotate: [0, -10, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                    className="flex justify-center"
-                  >
-                    <Sparkles className="w-5 h-5 text-gruvbox-yellow" />
-                  </motion.div>
-                )}
-              </div>
+                  <p className="text-xs text-gruvbox-fg4 mb-3 leading-relaxed">
+                    Sin anuncios, calidad HD y descargas ilimitadas
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gruvbox-yellow">
+                      Desde $4.99/mes
+                    </span>
+                    <motion.div
+                      animate={{ x: [0, 3, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <Sparkles className="w-4 h-4 text-gruvbox-yellow" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Shine effect */}
               <motion.div

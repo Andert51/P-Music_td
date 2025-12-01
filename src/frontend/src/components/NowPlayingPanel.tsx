@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Music, Heart, Radio, Disc3 } from 'lucide-react';
+import { Music, Heart, Radio, Disc3, Crown, ShieldAlert } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
 import { useAuthStore } from '@/store/authStore';
 import { getFileUrl } from "@/lib/utils";
@@ -15,7 +15,7 @@ interface NowPlayingPanelProps {
 
 export const NowPlayingPanel: React.FC<NowPlayingPanelProps> = () => {
   const { currentSong, queue, currentIndex, howl, isPlaying } = usePlayerStore();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -92,11 +92,24 @@ export const NowPlayingPanel: React.FC<NowPlayingPanelProps> = () => {
 
   return (
     <div className="w-80 bg-gradient-to-b from-gruvbox-bg via-gruvbox-bg0 to-gruvbox-bg border-l border-gruvbox-aqua/20 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-gruvbox-aqua/20">
+      <div className="p-4 border-b border-gruvbox-aqua/20 flex items-center justify-between">
         <h2 className="text-sm font-bold text-gruvbox-aqua uppercase tracking-wider flex items-center gap-2">
           <Disc3 className="w-4 h-4 animate-spin" style={{ animationDuration: '3s' }} />
           Now Playing
         </h2>
+        {user && (
+          user.role === 'user' ? (
+            <span className="px-2 py-1 bg-gruvbox-fg4/20 text-gruvbox-fg4 text-[10px] font-bold rounded uppercase flex items-center gap-1 border border-gruvbox-fg4/30">
+              <ShieldAlert className="w-3 h-3" />
+              Free
+            </span>
+          ) : (
+            <span className="px-2 py-1 bg-gruvbox-yellow/20 text-gruvbox-yellow text-[10px] font-bold rounded uppercase flex items-center gap-1 border border-gruvbox-yellow/40">
+              <Crown className="w-3 h-3" />
+              Premium
+            </span>
+          )
+        )}
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-6 space-y-6">

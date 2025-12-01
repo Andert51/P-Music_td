@@ -1,11 +1,53 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Check, Zap, Music, Headphones, Download, CloudOff, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 export const Premium: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasRedirected = useRef(false);
+
+  // Detectar cuando el usuario intenta salir de la página Premium (solo usuarios Free)
+  useEffect(() => {
+    if (user?.role === 'user' && !hasRedirected.current) {
+      // Interceptar clicks en todos los enlaces y botones que cambien de ruta
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const link = target.closest('a, button');
+        
+        if (link) {
+          const href = link.getAttribute('href');
+          // Si es un enlace interno que no sea la misma página premium
+          if (href && href !== '/premium' && href !== '#' && !href.startsWith('http')) {
+            e.preventDefault();
+            e.stopPropagation();
+            hasRedirected.current = true;
+            navigate('/fake-checkout');
+          }
+        }
+      };
+
+      // Interceptar navegación con botón atrás del navegador
+      const handlePopState = () => {
+        if (!hasRedirected.current) {
+          hasRedirected.current = true;
+          navigate('/fake-checkout', { replace: true });
+        }
+      };
+
+      document.addEventListener('click', handleClick, true);
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        document.removeEventListener('click', handleClick, true);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [user, navigate]);
 
   const features = {
     free: [
@@ -60,11 +102,19 @@ export const Premium: React.FC = () => {
   ];
 
   const handleSelectPlan = (planName: string) => {
-    toast.success(`¡Seleccionaste ${planName}! Redirigiendo a pago...`, {
-      icon: '👑',
-      duration: 3000,
-    });
-    // Aquí iría la integración con el sistema de pagos
+    // Para usuarios Premium o Admin, mostrar mensaje de que ya son premium
+    if (user?.role === 'premium' || user?.role === 'admin') {
+      toast.success('¡Ya eres Premium! Disfruta de todas las ventajas.', {
+        icon: '👑',
+        duration: 3000,
+      });
+    } else {
+      // Para usuarios Free, simplemente mostrar que seleccionaron el plan
+      toast.success(`Plan ${planName} seleccionado. Procésalo cuando quieras.`, {
+        icon: '👍',
+        duration: 2000,
+      });
+    }
   };
 
   return (
