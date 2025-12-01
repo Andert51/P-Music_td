@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
-from models import Album, User, UserRole
-from schemas import AlbumCreate, AlbumResponse
+from models import Album, User, UserRole, SongPlay
+from schemas import AlbumCreate, AlbumResponse, SongResponse
 from dependencies import get_current_user, require_role
 
 router = APIRouter(prefix="/albums", tags=["albums"])
@@ -28,14 +29,56 @@ async def get_albums(
 
 
 @router.get("/{album_id}", response_model=AlbumResponse)
-async def get_album(album_id: int, db: Session = Depends(get_db)):
+async def get_album(
+    album_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     album = db.query(Album).filter(Album.id == album_id).first()
     if not album:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Album not found"
         )
-    return album
+    
+    # Agregar conteo de reproducciones por usuario a cada canción
+    songs_with_user_plays = []
+    # Ordenar canciones por ID para mantener consistencia
+    sorted_songs = sorted(album.songs, key=lambda s: s.id)
+    for song in sorted_songs:
+        song_dict = {
+            "id": song.id,
+            "title": song.title,
+            "artist": song.artist,
+            "duration": song.duration,
+            "cover_url": song.cover_url,
+            "genre": song.genre,
+            "file_path": song.file_path,
+            "album_id": song.album_id,
+            "creator_id": song.creator_id,
+            "is_approved": song.is_approved,
+            "play_count": song.play_count,
+            "created_at": song.created_at,
+            "user_play_count": db.query(func.count(SongPlay.id)).filter(
+                SongPlay.song_id == song.id,
+                SongPlay.user_id == current_user.id
+            ).scalar() or 0
+        }
+        songs_with_user_plays.append(SongResponse(**song_dict))
+    
+    album_dict = {
+        "id": album.id,
+        "title": album.title,
+        "description": album.description,
+        "cover_image": album.cover_image,
+        "release_date": album.release_date,
+        "creator_id": album.creator_id,
+        "is_approved": album.is_approved,
+        "created_at": album.created_at,
+        "songs": songs_with_user_plays
+    }
+    
+    return AlbumResponse(**album_dict)
 
 
 @router.post("/", response_model=AlbumResponse, status_code=status.HTTP_201_CREATED)

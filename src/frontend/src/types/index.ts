@@ -20,6 +20,7 @@ export interface Song {
   creator_id: number;
   is_approved: boolean;
   play_count: number;
+  user_play_count?: number; // Contador de reproducciones por usuario
   created_at: string;
 }
 

@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Music, Heart, Radio, Disc3 } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
-import { getFileUrl } from '@/lib/utils';
-import { AudioVisualizer } from './AudioVisualizer';
+import { useAuthStore } from '@/store/authStore';
+import { getFileUrl } from "@/lib/utils";
+import { CircularAudioVisualizer } from "./CircularAudioVisualizer";
+import api from "@/lib/axios";
+import toast from "react-hot-toast";
 
 interface NowPlayingPanelProps {
   isOpen: boolean;
@@ -12,9 +15,11 @@ interface NowPlayingPanelProps {
 
 export const NowPlayingPanel: React.FC<NowPlayingPanelProps> = () => {
   const { currentSong, queue, currentIndex, howl, isPlaying } = usePlayerStore();
+  const { token } = useAuthStore();
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isLoadingLike, setIsLoadingLike] = useState(false);
 
   useEffect(() => {
     if (!howl) return;
@@ -24,6 +29,44 @@ export const NowPlayingPanel: React.FC<NowPlayingPanelProps> = () => {
     }, 100);
     return () => clearInterval(interval);
   }, [howl]);
+
+  // Verificar si la canción está en favoritos
+  useEffect(() => {
+    if (!currentSong || !token) return;
+    
+    const checkLikedStatus = async () => {
+      try {
+        const response = await api.get(`/songs/${currentSong.id}/is-liked`);
+        setIsLiked(response.data.is_liked);
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    
+    checkLikedStatus();
+  }, [currentSong, token]);
+
+  const handleToggleLike = async () => {
+    if (!currentSong || !token || isLoadingLike) return;
+    
+    setIsLoadingLike(true);
+    try {
+      if (isLiked) {
+        await api.delete(`/songs/${currentSong.id}/like`);
+        setIsLiked(false);
+        toast.success('Eliminado de favoritos');
+      } else {
+        await api.post(`/songs/${currentSong.id}/like`);
+        setIsLiked(true);
+        toast.success('Agregado a favoritos');
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Error al actualizar favoritos';
+      toast.error(message);
+    } finally {
+      setIsLoadingLike(false);
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -103,20 +146,21 @@ export const NowPlayingPanel: React.FC<NowPlayingPanelProps> = () => {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setIsLiked(!isLiked)}
-              className="mx-auto"
+              onClick={handleToggleLike}
+              disabled={isLoadingLike}
+              className="mx-auto disabled:opacity-50"
             >
               <Heart 
                 className={`w-8 h-8 transition-all ${
-                  isLiked ? 'fill-gruvbox-red text-gruvbox-red' : 'text-gruvbox-fg4 hover:text-gruvbox-red'
+                  isLiked ? 'fill-gruvbox-red text-gruvbox-red drop-shadow-[0_0_8px_rgba(251,73,52,0.8)]' : 'text-gruvbox-fg4 hover:text-gruvbox-red'
                 }`} 
               />
             </motion.button>
           </div>
 
-          {/* Audio Visualizer */}
-          <div className="bg-gruvbox-bg1 rounded-xl p-4 border border-gruvbox-aqua/20">
-            <AudioVisualizer isPlaying={isPlaying} barCount={35} />
+          {/* Circular Audio Visualizer - Estilo NCS */}
+          <div className="relative bg-gruvbox-bg1 rounded-xl p-8 border border-gruvbox-aqua/20 flex items-center justify-center">
+            <CircularAudioVisualizer howl={howl} isPlaying={isPlaying} />
           </div>
 
           {/* Progress Info */}

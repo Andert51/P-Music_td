@@ -114,3 +114,15 @@ class LikedSong(Base):
     
     user = relationship("User", back_populates="liked_songs")
     song = relationship("Song", back_populates="liked_by")
+
+
+class SongPlay(Base):
+    __tablename__ = "song_plays"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    song_id = Column(Integer, ForeignKey("songs.id"), nullable=False)
+    played_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User")
+    song = relationship("Song")

@@ -13,7 +13,7 @@ sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import User, Song, Album, Playlist, PlaylistSong, LikedSong, UserRole
+from models import User, Song, Album, Playlist, PlaylistSong, LikedSong, SongPlay, UserRole
 import shutil
 
 
@@ -66,19 +66,23 @@ def clean_database(db: Session):
     deleted_liked_songs = db.query(LikedSong).delete()
     print(f"   🗑️  {deleted_liked_songs} canciones con like eliminadas")
     
-    # 3. Eliminar todas las playlists (depende de users)
+    # 3. Eliminar todos los registros de reproducción (depende de users y songs)
+    deleted_song_plays = db.query(SongPlay).delete()
+    print(f"   🗑️  {deleted_song_plays} registros de reproducción eliminados")
+    
+    # 4. Eliminar todas las playlists (depende de users)
     deleted_playlists = db.query(Playlist).delete()
     print(f"   🗑️  {deleted_playlists} playlists eliminadas")
     
-    # 4. Eliminar todas las canciones (depende de albums y users)
+    # 5. Eliminar todas las canciones (depende de albums y users)
     deleted_songs = db.query(Song).delete()
     print(f"   🗑️  {deleted_songs} canciones eliminadas")
     
-    # 5. Eliminar todos los álbumes (depende de users)
+    # 6. Eliminar todos los álbumes (depende de users)
     deleted_albums = db.query(Album).delete()
     print(f"   🗑️  {deleted_albums} álbumes eliminados")
     
-    # 6. Eliminar todos los usuarios (no depende de nada)
+    # 7. Eliminar todos los usuarios (no depende de nada)
     deleted_users = db.query(User).delete()
     print(f"   🗑️  {deleted_users} usuarios eliminados")
     

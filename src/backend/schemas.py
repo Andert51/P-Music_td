@@ -66,6 +66,7 @@ class SongResponse(SongBase):
     creator_id: int
     is_approved: bool
     play_count: int
+    user_play_count: Optional[int] = 0  # Contador por usuario
     created_at: datetime
     
     class Config:

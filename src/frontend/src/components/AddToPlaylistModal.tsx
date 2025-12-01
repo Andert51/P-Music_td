@@ -109,12 +109,13 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
           />
 
           {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[90vh] overflow-y-auto bg-gruvbox-bg1 rounded-2xl shadow-2xl z-50 border-2 border-gruvbox-aqua/30"
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-gruvbox-bg1 rounded-2xl shadow-2xl border-2 border-gruvbox-aqua/30"
+            >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gruvbox-bg2">
               <div>
@@ -246,7 +247,8 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                 </div>
               )}
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

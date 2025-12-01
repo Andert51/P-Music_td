@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { Plus, Music, Lock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -157,24 +158,56 @@ export const Library: React.FC = () => {
         </div>
       )}
 
-      {/* Create Playlist Modal */}
-      {showCreateModal && (
-        <>
+      {/* Create Playlist Modal - Usando Portal con modal-root dedicado */}
+      {showCreateModal && ReactDOM.createPortal(
+        <div style={{ 
+          position: 'fixed', 
+          top: '0px',
+          left: '0px',
+          right: '0px',
+          bottom: '0px',
+          width: '100vw',
+          height: '100vh',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: 0,
+          padding: 0
+        }}>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={() => setShowCreateModal(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 1
+            }}
           />
 
-          {/* Modal */}
+          {/* Modal - Centrado con flexbox */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-gruvbox-bg1 rounded-2xl shadow-2xl z-50 border-2 border-gruvbox-purple/30"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '28rem',
+              width: 'calc(100% - 2rem)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              zIndex: 2,
+              margin: 'auto'
+            }}
+            className="bg-gruvbox-bg1 rounded-2xl shadow-2xl border-2 border-gruvbox-purple/30"
           >
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gruvbox-fg mb-6">
@@ -237,9 +270,10 @@ export const Library: React.FC = () => {
                   </button>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        </>
+              </div>
+            </motion.div>
+        </div>,
+        document.getElementById('modal-root')!
       )}
     </div>
   );

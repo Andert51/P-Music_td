@@ -43,15 +43,15 @@ python scripts/seed_database.py
 
 | Email | Usuario | Contraseña | Rol | Permisos |
 |-------|---------|------------|-----|----------|
-| `andres@gmail.com` | Andrés | `password123` | ADMIN | ✅ Subir contenido<br>✅ Eliminar contenido<br>✅ Gestión completa |
-| `creator@pmusic.com` | P-Music Creator | `password123` | CREATOR | ✅ Subir contenido<br>✅ Auto-aprobación |
-| `moderator@pmusic.com` | Moderador P-Music | `password123` | ADMIN | ✅ Gestión completa<br>✅ Moderar contenido |
+| `andres@gmail.com` | Andrés | `password123` | ADMIN |  Subir contenido<br> Eliminar contenido<br> Gestión completa |
+| `creator@pmusic.com` | P-Music Creator | `password123` | CREATOR |  Subir contenido<br> Auto-aprobación |
+| `moderator@pmusic.com` | Moderador P-Music | `password123` | ADMIN |  Gestión completa<br> Moderar contenido |
 
 **Características:**
-- ✅ Todos los usuarios están pre-verificados
-- ✅ No requiere confirmación de email
-- ✅ Listos para usar inmediatamente
-- 🔐 Contraseñas hasheadas con bcrypt
+-  Todos los usuarios están pre-verificados
+-  No requiere confirmación de email
+-  Listos para usar inmediatamente
+-  Contraseñas hasheadas con bcrypt
 
 ---
 
@@ -89,7 +89,7 @@ python scripts/fix_paths.py
 
 ---
 
-## 🚀 Flujo de Trabajo Recomendado
+##  Flujo de Trabajo Recomendado
 
 ### Para desarrollo inicial:
 ```bash
@@ -115,7 +115,7 @@ python scripts/seed_database.py
 
 ---
 
-## 📋 Notas Importantes
+##  Notas Importantes
 
 1. **Backup:** Antes de ejecutar `clean_database.py` en datos reales, asegúrate de tener un backup.
 
@@ -129,7 +129,7 @@ python scripts/seed_database.py
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Error: "No module named 'database'"
 ```bash
@@ -151,16 +151,4 @@ python scripts/script_name.py
 # En Windows: No es necesario cambiar permisos
 # En Linux/Mac:
 chmod -R 755 uploads/
-```
-
----
-
-## 📞 Soporte
-
-Si encuentras problemas con estos scripts, verifica:
-1. ✅ Estás en el directorio correcto (`src/backend`)
-2. ✅ El servidor FastAPI está detenido
-3. ✅ Tienes permisos de escritura en el directorio
-4. ✅ La base de datos SQLite existe
-
-Para más información, consulta la documentación principal del proyecto.
+``` 

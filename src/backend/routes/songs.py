@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
-from models import Song, User, UserRole, LikedSong
+from models import Song, User, UserRole, LikedSong, SongPlay
 from schemas import SongCreate, SongResponse
 from dependencies import get_current_user, require_role
 
@@ -19,7 +20,8 @@ async def get_songs(
     approved_only: bool = True,
     order_by: str = "play_count",  # play_count, created_at, title
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Obtiene lista de canciones con filtros y ordenamiento
@@ -40,27 +42,78 @@ async def get_songs(
     
     # Ordenamiento
     if order_by == "play_count":
-        query = query.order_by(Song.play_count.desc())
+        query = query.order_by(Song.play_count.desc(), Song.id.asc())
     elif order_by == "created_at":
-        query = query.order_by(Song.created_at.desc())
+        query = query.order_by(Song.created_at.desc(), Song.id.asc())
     elif order_by == "title":
-        query = query.order_by(Song.title.asc())
+        query = query.order_by(Song.title.asc(), Song.id.asc())
     else:
-        query = query.order_by(Song.play_count.desc())  # Default
+        query = query.order_by(Song.play_count.desc(), Song.id.asc())  # Default
     
     songs = query.offset(skip).limit(limit).all()
-    return songs
+    
+    # Agregar conteo de reproducciones por usuario
+    songs_with_user_plays = []
+    for song in songs:
+        song_dict = {
+            "id": song.id,
+            "title": song.title,
+            "artist": song.artist,
+            "duration": song.duration,
+            "cover_url": song.cover_url,
+            "genre": song.genre,
+            "file_path": song.file_path,
+            "album_id": song.album_id,
+            "creator_id": song.creator_id,
+            "is_approved": song.is_approved,
+            "play_count": song.play_count,
+            "created_at": song.created_at,
+            "user_play_count": db.query(func.count(SongPlay.id)).filter(
+                SongPlay.song_id == song.id,
+                SongPlay.user_id == current_user.id
+            ).scalar() or 0
+        }
+        songs_with_user_plays.append(SongResponse(**song_dict))
+    
+    return songs_with_user_plays
 
 
 @router.get("/{song_id}", response_model=SongResponse)
-async def get_song(song_id: int, db: Session = Depends(get_db)):
+async def get_song(
+    song_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     song = db.query(Song).filter(Song.id == song_id).first()
     if not song:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Song not found"
         )
-    return song
+    
+    # Agregar conteo de reproducciones por usuario
+    user_play_count = db.query(func.count(SongPlay.id)).filter(
+        SongPlay.song_id == song_id,
+        SongPlay.user_id == current_user.id
+    ).scalar() or 0
+    
+    song_dict = {
+        "id": song.id,
+        "title": song.title,
+        "artist": song.artist,
+        "duration": song.duration,
+        "cover_url": song.cover_url,
+        "genre": song.genre,
+        "file_path": song.file_path,
+        "album_id": song.album_id,
+        "creator_id": song.creator_id,
+        "is_approved": song.is_approved,
+        "play_count": song.play_count,
+        "created_at": song.created_at,
+        "user_play_count": user_play_count
+    }
+    
+    return SongResponse(**song_dict)
 
 
 @router.post("/", response_model=SongResponse, status_code=status.HTTP_201_CREATED)
@@ -140,12 +193,12 @@ async def delete_song(
 
 
 @router.post("/{song_id}/play")
-async def increment_play_count(
+async def record_play(
     song_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Incrementa el contador de reproducciones de una canción"""
+    """Registra una reproducción de la canción por el usuario"""
     song = db.query(Song).filter(Song.id == song_id).first()
     if not song:
         raise HTTPException(
@@ -153,10 +206,55 @@ async def increment_play_count(
             detail="Song not found"
         )
     
+    # Incrementar contador global
     song.play_count += 1
+    
+    # Registrar reproducción por usuario
+    new_play = SongPlay(
+        user_id=current_user.id,
+        song_id=song_id
+    )
+    
+    db.add(new_play)
     db.commit()
     
-    return {"message": "Play count incremented", "play_count": song.play_count}
+    # Obtener conteo total de reproducciones del usuario
+    user_play_count = db.query(func.count(SongPlay.id)).filter(
+        SongPlay.song_id == song_id,
+        SongPlay.user_id == current_user.id
+    ).scalar()
+    
+    return {
+        "message": "Play recorded successfully",
+        "play_count": song.play_count,
+        "user_play_count": user_play_count
+    }
+
+
+@router.get("/{song_id}/plays")
+async def get_song_plays(
+    song_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Obtiene estadísticas de reproducción de una canción"""
+    song = db.query(Song).filter(Song.id == song_id).first()
+    if not song:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Song not found"
+        )
+    
+    user_play_count = db.query(func.count(SongPlay.id)).filter(
+        SongPlay.song_id == song_id,
+        SongPlay.user_id == current_user.id
+    ).scalar() or 0
+    
+    return {
+        "song_id": song_id,
+        "total_plays": song.play_count,
+        "user_plays": user_play_count
+    }
 
 
 @router.post("/{song_id}/like")
@@ -232,9 +330,32 @@ async def get_liked_songs(
     """Obtiene todas las canciones favoritas del usuario"""
     liked_songs = db.query(Song).join(LikedSong).filter(
         LikedSong.user_id == current_user.id
-    ).order_by(LikedSong.liked_at.desc()).offset(skip).limit(limit).all()
+    ).order_by(LikedSong.liked_at.desc(), Song.id.asc()).offset(skip).limit(limit).all()
     
-    return liked_songs
+    # Agregar conteo de reproducciones por usuario
+    songs_with_user_plays = []
+    for song in liked_songs:
+        song_dict = {
+            "id": song.id,
+            "title": song.title,
+            "artist": song.artist,
+            "duration": song.duration,
+            "cover_url": song.cover_url,
+            "genre": song.genre,
+            "file_path": song.file_path,
+            "album_id": song.album_id,
+            "creator_id": song.creator_id,
+            "is_approved": song.is_approved,
+            "play_count": song.play_count,
+            "created_at": song.created_at,
+            "user_play_count": db.query(func.count(SongPlay.id)).filter(
+                SongPlay.song_id == song.id,
+                SongPlay.user_id == current_user.id
+            ).scalar() or 0
+        }
+        songs_with_user_plays.append(SongResponse(**song_dict))
+    
+    return songs_with_user_plays
 
 
 @router.get("/{song_id}/is-liked")
@@ -250,21 +371,3 @@ async def check_if_liked(
     ).first()
     
     return {"is_liked": liked is not None, "song_id": song_id}
-
-
-@router.post("/{song_id}/play")
-async def increment_play_count(
-    song_id: int,
-    db: Session = Depends(get_db)
-):
-    song = db.query(Song).filter(Song.id == song_id).first()
-    if not song:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Song not found"
-        )
-    
-    song.play_count += 1
-    db.commit()
-    
-    return {"message": "Play count incremented", "play_count": song.play_count}

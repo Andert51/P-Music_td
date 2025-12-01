@@ -256,7 +256,7 @@ export const AlbumDetail: React.FC = () => {
               </div>
 
               <div className="text-gray-400 text-sm flex items-center w-20 justify-end">
-                {song.play_count.toLocaleString()}
+                {song.user_play_count?.toLocaleString() || 0}
               </div>
 
               <div className="text-gray-400 text-sm flex items-center w-20 justify-end">

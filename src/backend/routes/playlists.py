@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import get_db
-from models import Playlist, PlaylistSong, User, Song
-from schemas import PlaylistCreate, PlaylistResponse, PlaylistWithSongs
+from models import Playlist, PlaylistSong, User, Song, SongPlay
+from schemas import PlaylistCreate, PlaylistResponse, PlaylistWithSongs, SongResponse
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
@@ -53,11 +54,35 @@ async def get_playlist(
             detail="Not authorized to access this playlist"
         )
     
-    playlist_songs = db.query(Song).join(PlaylistSong).filter(
+    # Obtener canciones ordenadas por posición
+    playlist_songs = db.query(Song, PlaylistSong.position).join(PlaylistSong).filter(
         PlaylistSong.playlist_id == playlist_id
     ).order_by(PlaylistSong.position).all()
     
-    return {**playlist.__dict__, "songs": playlist_songs}
+    # Agregar conteo de reproducciones por usuario manteniendo el orden
+    songs_with_user_plays = []
+    for song, position in playlist_songs:
+        song_dict = {
+            "id": song.id,
+            "title": song.title,
+            "artist": song.artist,
+            "duration": song.duration,
+            "cover_url": song.cover_url,
+            "genre": song.genre,
+            "file_path": song.file_path,
+            "album_id": song.album_id,
+            "creator_id": song.creator_id,
+            "is_approved": song.is_approved,
+            "play_count": song.play_count,
+            "created_at": song.created_at,
+            "user_play_count": db.query(func.count(SongPlay.id)).filter(
+                SongPlay.song_id == song.id,
+                SongPlay.user_id == current_user.id
+            ).scalar() or 0
+        }
+        songs_with_user_plays.append(SongResponse(**song_dict))
+    
+    return {**playlist.__dict__, "songs": songs_with_user_plays}
 
 
 @router.post("/", response_model=PlaylistResponse, status_code=status.HTTP_201_CREATED)

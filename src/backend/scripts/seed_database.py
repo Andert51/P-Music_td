@@ -26,19 +26,17 @@ def create_users(db: Session):
     
     print("\n🌱 Creando usuarios iniciales...")
     
-    # Verificar si ya existen usuarios
-    existing_users = db.query(User).count()
-    if existing_users > 0:
-        print(f"⚠️  Ya existen {existing_users} usuarios en la base de datos")
-        response = input("¿Desea eliminarlos y recrear los usuarios base? (yes/no): ")
+    # Verificar si ya existen los usuarios base
+    admin_exists = db.query(User).filter(User.email == "andres@gmail.com").first()
+    if admin_exists:
+        print("✅ Los usuarios base ya existen, verificando...")
+        existing_count = db.query(User).count()
+        print(f"   📊 Total de usuarios en DB: {existing_count}")
+        response = input("¿Desea recrear SOLO los usuarios base sin tocar otros? (yes/no): ")
         
         if response.lower() != "yes":
             print("❌ Operación cancelada")
             return
-        
-        db.query(User).delete()
-        db.commit()
-        print("🗑️  Usuarios existentes eliminados")
     
     users_data = [
         {
@@ -67,8 +65,14 @@ def create_users(db: Session):
         # Verificar si el usuario ya existe
         existing_user = db.query(User).filter(User.email == user_data["email"]).first()
         
+        role_emoji = {
+            UserRole.ADMIN: "👑",
+            UserRole.CREATOR: "🎵",
+            UserRole.USER: "👤"
+        }
+        
         if existing_user:
-            print(f"   ⚠️  Usuario {user_data['email']} ya existe, saltando...")
+            print(f"   ✅ {role_emoji[user_data['role']]} {user_data['username']} ({user_data['email']}) - Ya existe")
             created_users.append(existing_user)
             continue
         
@@ -85,13 +89,7 @@ def create_users(db: Session):
         db.add(user)
         created_users.append(user)
         
-        role_emoji = {
-            UserRole.ADMIN: "👑",
-            UserRole.CREATOR: "🎵",
-            UserRole.USER: "👤"
-        }
-        
-        print(f"   {role_emoji[user.role]} {user.username} ({user.email}) - {user.role.value}")
+        print(f"   ✨ {role_emoji[user.role]} {user.username} ({user.email}) - Creado")
     
     db.commit()
     
