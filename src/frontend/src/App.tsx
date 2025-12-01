@@ -13,6 +13,7 @@ import { LikedSongs } from '@/pages/LikedSongs';
 import { Search } from '@/pages/Search';
 import { Library } from '@/pages/Library';
 import { PlaylistDetail } from '@/pages/PlaylistDetail';
+import { Premium } from '@/pages/Premium';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -60,6 +61,7 @@ const App: React.FC = () => {
           <Route path="library" element={<Library />} />
           <Route path="playlists/:id" element={<PlaylistDetail />} />
           <Route path="liked" element={<LikedSongs />} />
+          <Route path="premium" element={<Premium />} />
         </Route>
       </Routes>
     </BrowserRouter>

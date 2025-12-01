@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart, Plus } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Heart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
 import { getFileUrl } from '@/lib/utils';
 import api from '@/lib/axios';
@@ -19,6 +19,7 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
   const [isSeeking, setIsSeeking] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Check if current song is liked
   useEffect(() => {
@@ -108,10 +109,130 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
     <>
     <motion.div
       initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-80 bg-gradient-to-t from-gruvbox-bg via-gruvbox-bg0 to-gruvbox-bg0/95 backdrop-blur-xl border-t border-gruvbox-aqua/20 px-8 py-5 z-20"
+      animate={{ 
+        y: 0,
+        height: isCollapsed ? '80px' : 'auto'
+      }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className="fixed bottom-0 left-0 right-80 bg-gradient-to-t from-gruvbox-bg via-gruvbox-bg0 to-gruvbox-bg0/95 backdrop-blur-xl border-t border-gruvbox-aqua/20 z-20 overflow-hidden"
       style={{ boxShadow: '0 -10px 40px rgba(142, 192, 124, 0.15)' }}
     >
+      {/* Collapse Button */}
+      <motion.button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        className="absolute top-2 right-4 z-30 p-2 rounded-full bg-gruvbox-bg2/80 hover:bg-gruvbox-aqua/20 transition-colors border border-gruvbox-aqua/30"
+      >
+        {isCollapsed ? (
+          <ChevronUp className="w-5 h-5 text-gruvbox-aqua" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gruvbox-aqua" />
+        )}
+      </motion.button>
+
+      {/* Mini Player (cuando está colapsado) */}
+      {isCollapsed && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="px-8 py-4 flex items-center justify-between max-w-screen-2xl mx-auto"
+        >
+          {/* Mini Info */}
+          <div className="flex items-center space-x-4 flex-1 min-w-0">
+            <motion.div
+              onClick={onOpenNowPlaying}
+              className="cursor-pointer flex-shrink-0"
+              whileHover={{ scale: 1.05 }}
+            >
+              <img
+                src={getFileUrl(currentSong.cover_url)}
+                alt={currentSong.title}
+                className="w-14 h-14 rounded-lg shadow-lg border-2 border-gruvbox-aqua/30"
+              />
+            </motion.div>
+
+            <div className="min-w-0 flex-1">
+              <h4 className="text-gruvbox-fg font-bold truncate text-sm">
+                {currentSong.title}
+              </h4>
+              <p className="text-gruvbox-fg4 text-xs truncate">
+                {currentSong.artist}
+              </p>
+            </div>
+          </div>
+
+          {/* Mini Controls */}
+          <div className="flex items-center space-x-4">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={previousSong}
+              className="text-gruvbox-fg hover:text-gruvbox-aqua transition-colors"
+            >
+              <SkipBack className="w-5 h-5" fill="currentColor" />
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={togglePlay}
+              className="bg-gradient-to-br from-gruvbox-aqua to-gruvbox-yellow p-3 rounded-full shadow-lg"
+            >
+              {isPlaying ? (
+                <Pause className="w-5 h-5 text-gruvbox-bg" fill="currentColor" />
+              ) : (
+                <Play className="w-5 h-5 text-gruvbox-bg ml-0.5" fill="currentColor" />
+              )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={nextSong}
+              className="text-gruvbox-fg hover:text-gruvbox-aqua transition-colors"
+            >
+              <SkipForward className="w-5 h-5" fill="currentColor" />
+            </motion.button>
+          </div>
+
+          {/* Mini Progress */}
+          <div className="flex items-center space-x-3 flex-1 justify-end max-w-md">
+            <span className="text-xs text-gruvbox-fg4 font-mono w-10 text-right">
+              {formatTime(currentTime)}
+            </span>
+            <div className="flex-1 h-2 bg-gruvbox-bg2/80 rounded-full relative overflow-hidden border border-gruvbox-aqua/20">
+              <motion.div
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-gruvbox-aqua to-gruvbox-yellow rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime}
+                onChange={handleSeek}
+                onMouseUp={handleSeekEnd}
+                onTouchEnd={handleSeekEnd}
+                className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+              />
+            </div>
+            <span className="text-xs text-gruvbox-fg4 font-mono w-10">
+              {formatTime(duration)}
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Full Player (cuando está expandido) */}
+      {!isCollapsed && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="px-8 py-5"
+      >
       <div className="max-w-screen-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           {/* Song Info */}
@@ -319,6 +440,8 @@ export const Player: React.FC<PlayerProps> = ({ onOpenNowPlaying }) => {
           </div>
         </div>
       </div>
+      </motion.div>
+      )}
     </motion.div>
 
     {/* Add to Playlist Modal */}

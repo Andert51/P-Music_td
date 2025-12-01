@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Gradiente de fondo estilo Gruvbox -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fabd2f;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#fe8019;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d65d0e;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradiente para hexágonos del panal -->
+    <linearGradient id="honeycombGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8ec07c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b8bb26;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Sombra interior -->
+    <radialGradient id="shadowGradient" cx="50%" cy="50%">
+      <stop offset="70%" style="stop-color:#282828;stop-opacity:0" />
+      <stop offset="100%" style="stop-color:#1d2021;stop-opacity:0.3" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Fondo circular principal -->
+  <circle cx="50" cy="50" r="48" fill="url(#bgGradient)"/>
+  <circle cx="50" cy="50" r="48" fill="url(#shadowGradient)"/>
+  
+  <!-- Panal de abejas (hexágonos) en el fondo -->
+  <g opacity="0.2" stroke="#1d2021" stroke-width="1.5" fill="none">
+    <!-- Fila superior -->
+    <path d="M 35,20 L 40,17 L 45,20 L 45,26 L 40,29 L 35,26 Z"/>
+    <path d="M 50,20 L 55,17 L 60,20 L 60,26 L 55,29 L 50,26 Z"/>
+    
+    <!-- Fila media -->
+    <path d="M 27.5,30 L 32.5,27 L 37.5,30 L 37.5,36 L 32.5,39 L 27.5,36 Z"/>
+    <path d="M 42.5,30 L 47.5,27 L 52.5,30 L 52.5,36 L 47.5,39 L 42.5,36 Z"/>
+    <path d="M 57.5,30 L 62.5,27 L 67.5,30 L 67.5,36 L 62.5,39 L 57.5,36 Z"/>
+    
+    <!-- Fila inferior -->
+    <path d="M 35,40 L 40,37 L 45,40 L 45,46 L 40,49 L 35,46 Z"/>
+    <path d="M 50,40 L 55,37 L 60,40 L 60,46 L 55,49 L 50,46 Z"/>
+  </g>
+  
+  <!-- Letra P estilizada (Panel/P-Music) -->
+  <g fill="#282828">
+    <path d="M 30,45 L 30,75 L 25,75 L 25,45 L 30,45 Z" />
+    <path d="M 25,45 L 25,40 L 40,40 Q 48,40 48,50 Q 48,60 40,60 L 25,60 L 25,55 L 38,55 Q 43,55 43,50 Q 43,45 38,45 L 25,45 Z" />
+  </g>
+  
+  <!-- Nota musical integrada con el diseño -->
+  <g fill="#282828">
+    <circle cx="60" cy="62" r="5"/>
+    <ellipse cx="60" cy="62" rx="5" ry="3.5" fill="#fabd2f" opacity="0.3"/>
+    <rect x="64" y="48" width="3" height="15" rx="1.5"/>
+    <path d="M 64,48 Q 72,45 72,52 L 72,58 Q 72,52 64,55 Z" fill="#282828"/>
+  </g>
+  
+  <!-- Pequeña abeja decorativa -->
+  <g transform="translate(70, 30)">
+    <!-- Cuerpo de la abeja -->
+    <ellipse cx="0" cy="0" rx="4" ry="3" fill="#fabd2f"/>
+    <ellipse cx="-1" cy="0" rx="2.5" ry="2" fill="#282828"/>
+    <ellipse cx="1.5" cy="0" rx="2" ry="1.8" fill="#282828"/>
+    
+    <!-- Alas -->
+    <ellipse cx="-2" cy="-1" rx="2.5" ry="1.5" fill="#ebdbb2" opacity="0.6" transform="rotate(-30)"/>
+    <ellipse cx="2" cy="-1" rx="2.5" ry="1.5" fill="#ebdbb2" opacity="0.6" transform="rotate(30)"/>
+    
+    <!-- Antenas -->
+    <line x1="-2" y1="-2" x2="-3" y2="-4" stroke="#282828" stroke-width="0.5"/>
+    <line x1="2" y1="-2" x2="3" y2="-4" stroke="#282828" stroke-width="0.5"/>
+    <circle cx="-3" cy="-4" r="0.5" fill="#282828"/>
+    <circle cx="3" cy="-4" r="0.5" fill="#282828"/>
+  </g>
+  
+  <!-- Brillo/highlight sutil -->
+  <circle cx="35" cy="35" r="8" fill="#ebdbb2" opacity="0.15"/>
+</svg>

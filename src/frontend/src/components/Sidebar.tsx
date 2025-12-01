@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Library, Heart, Plus, Album, Music2, Upload } from 'lucide-react';
+import { Home, Library, Heart, Plus, Album, Music2, Upload, Crown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 
@@ -93,6 +93,88 @@ export const Sidebar: React.FC = () => {
           </Link>
         ))}
       </nav>
+
+      {/* Premium Banner - Solo para usuarios normales */}
+      {user && user.role === 'user' && (
+        <div className="p-3">
+          <Link to="/premium">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative bg-gradient-to-br from-gruvbox-yellow/20 via-gruvbox-orange/20 to-gruvbox-purple/20 backdrop-blur-sm border-2 border-gruvbox-yellow/40 rounded-xl p-4 overflow-hidden cursor-pointer group"
+            >
+              {/* Animated background */}
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="absolute inset-0 bg-gradient-to-br from-gruvbox-yellow/10 to-gruvbox-purple/10 rounded-xl"
+              />
+
+              {/* Content */}
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                  >
+                    <Crown className="w-6 h-6 text-gruvbox-yellow" />
+                  </motion.div>
+                  <h3 className="font-black text-gruvbox-fg text-sm">Actualiza a Premium</h3>
+                </div>
+
+                <AnimatePresence>
+                  {shouldExpand && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-xs text-gruvbox-fg4 mb-3 leading-relaxed">
+                        Sin anuncios, calidad HD y descargas ilimitadas
+                      </p>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gruvbox-yellow">
+                          Desde $4.99/mes
+                        </span>
+                        <motion.div
+                          animate={{ x: [0, 3, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <Sparkles className="w-4 h-4 text-gruvbox-yellow" />
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {!shouldExpand && (
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                    className="flex justify-center"
+                  >
+                    <Sparkles className="w-5 h-5 text-gruvbox-yellow" />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Shine effect */}
+              <motion.div
+                animate={{ x: [-100, 200] }}
+                transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+              />
+            </motion.div>
+          </Link>
+        </div>
+      )}
 
       {/* Create Playlist Button - Redesigned */}
       <div className="p-3 space-y-2 pb-44">

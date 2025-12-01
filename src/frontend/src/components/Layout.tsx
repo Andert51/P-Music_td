@@ -13,7 +13,7 @@ export const Layout: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNavbar />
         
-        <main className="flex-1 overflow-y-auto px-8 py-6 pb-32">
+        <main className="flex-1 overflow-y-auto px-8 py-6 pb-36">
           <Outlet />
         </main>
         
